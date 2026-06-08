@@ -675,10 +675,9 @@
             leaderboardTitle.innerText = currentGamemode === 'TRON' ? 'Top 10 (Tron)' : 'Top 10 (Default)';
 
             const sorted = [...snakes].sort((a, b) => b.segments.length - a.segments.length);
-            
             leaderboardList.innerHTML = '';
-            const top10 = sorted.slice(0, 10);
 
+            const top10 = sorted.slice(0, 10);
             top10.forEach((snake, idx) => {
                 const li = document.createElement('li');
                 li.className = 'leaderboard-item' + (snake.isPlayer ? ' player-row' : '');
@@ -709,23 +708,26 @@
                 this.totalSegments = currentGamemode === 'TRON' ? 60 : 45;
                 this.segments = [];
                 this.baseRadius = config.baseRadius;
-                this.isBoosting = false; 
-                this.actuallyBoosting = false; 
+                this.isBoosting = false;
+                this.actuallyBoosting = false;
                 this.lastBoostDrainTime = Date.now();
                 this.virtualCursor = { x: x, y: y };
                 this.wanderTarget = { x: Math.random() * (config.mapWidth - 400) + 200, y: Math.random() * (config.mapHeight - 400) + 200 };
                 this.startRGB = randomRGB();
                 this.endRGB = randomRGB();
                 this.spawnTime = Date.now();
-                this.isNetworkRemote = false; 
+                this.isNetworkRemote = false;
                 this.networkId = null;
-
-                this.currentDirection = 'RIGHT'; 
+                this.currentDirection = 'RIGHT';
                 this.nextDirection = 'RIGHT';
-                let initialAngle = 0;
 
+                let initialAngle = 0;
                 for (let i = 0; i < this.totalSegments; i++) {
-                    this.segments.push({ x: x - (i * (currentGamemode === 'TRON' ? 4 : config.segmentLength)), y: y, angle: initialAngle });
+                    this.segments.push({
+                        x: x - (i * (currentGamemode === 'TRON' ? 4 : config.segmentLength)),
+                        y: y,
+                        angle: initialAngle
+                    });
                 }
             }
 
@@ -735,7 +737,6 @@
 
             updateAI(allSnakes) {
                 if (this.isPlayer || this.isNetworkRemote) return;
-
                 if (currentGamemode === 'TRON') {
                     this.updateTronAI(allSnakes);
                     return;
@@ -744,29 +745,31 @@
                 let head = this.segments[0];
                 let steerX = this.wanderTarget.x;
                 let steerY = this.wanderTarget.y;
-                this.isBoosting = false; 
+                this.isBoosting = false;
 
                 const safetyZone = 160;
                 if (head.x < safetyZone || head.x > config.mapWidth - safetyZone || head.y < safetyZone || head.y > config.mapHeight - safetyZone) {
                     this.virtualCursor.x = config.mapWidth / 2;
                     this.virtualCursor.y = config.mapHeight / 2;
-                    this.isBoosting = currentDifficulty !== 'EASY'; 
+                    this.isBoosting = currentDifficulty !== 'EASY';
                     return;
                 }
 
                 let targetSnake = null;
-                let closestDist = 1500; 
-                
+                let closestDist = 1500;
                 let maxAggroDist = 650;
                 let evasionDist = 110;
+
                 if (currentDifficulty === 'EASY') maxAggroDist = 0;
                 else if (currentDifficulty === 'MEDIUM') maxAggroDist = 200;
-                else if (currentDifficulty === 'EXPERT') { maxAggroDist = 1000; evasionDist = 150; }
+                else if (currentDifficulty === 'EXPERT') {
+                    maxAggroDist = 1000;
+                    evasionDist = 150;
+                }
 
                 allSnakes.forEach(s => {
                     if (s !== this && s.segments.length > 0 && !this.isProtected() && !s.isProtected()) {
                         let d = Math.hypot(head.x - s.segments[0].x, head.y - s.segments[0].y);
-                        
                         if (d < closestDist && d < maxAggroDist) {
                             closestDist = d;
                             targetSnake = s;
@@ -776,13 +779,14 @@
 
                 if (targetSnake) {
                     let targetHead = targetSnake.segments[0];
-                    let leadingFactor = closestDist * (currentDifficulty === 'EXPERT' ? 0.6 : 0.35); 
+                    let leadingFactor = closestDist * (currentDifficulty === 'EXPERT' ? 0.6 : 0.35);
                     steerX = targetHead.x + Math.cos(targetHead.angle) * leadingFactor;
                     steerY = targetHead.y + Math.sin(targetHead.angle) * leadingFactor;
-                    if (closestDist < 250 && currentDifficulty !== 'EASY') this.isBoosting = true; 
+                    if (closestDist < 250 && currentDifficulty !== 'EASY') this.isBoosting = true;
                 } else {
                     let closestOrb = null;
                     let closestOrbDist = 350;
+
                     orbs.forEach(o => {
                         let d = Math.hypot(head.x - o.x, head.y - o.y);
                         if (d < closestOrbDist) {
@@ -805,21 +809,20 @@
 
                 if (currentDifficulty !== 'EASY') {
                     allSnakes.forEach(s => {
-                        if (s === this || s.isProtected() || this.isProtected()) return; 
+                        if (s === this || s.isProtected() || this.isProtected()) return;
                         if (s.segments.length > 0) {
                             let headDist = Math.hypot(head.x - s.segments[0].x, head.y - s.segments[0].y);
                             let approxLength = s.segments.length * config.segmentLength;
-                            if (headDist > approxLength + 400) return; 
+                            if (headDist > approxLength + 400) return;
 
                             for (let i = 0; i < s.segments.length; i += 6) {
                                 let bodySeg = s.segments[i];
                                 let d = Math.hypot(head.x - bodySeg.x, head.y - bodySeg.y);
-                                
                                 if (d < evasionDist) {
                                     let escapeAngle = Math.atan2(head.y - bodySeg.y, head.x - bodySeg.x) + Math.PI / 2;
                                     steerX = head.x + Math.cos(escapeAngle) * 300;
                                     steerY = head.y + Math.sin(escapeAngle) * 300;
-                                    this.isBoosting = true; 
+                                    this.isBoosting = true;
                                     break;
                                 }
                             }
@@ -834,12 +837,7 @@
             updateTronAI(allSnakes) {
                 let head = this.segments[0];
                 let currentAngle = head.angle;
-
-                let options = [
-                    currentAngle,                  
-                    currentAngle - Math.PI / 2,     
-                    currentAngle + Math.PI / 2      
-                ];
+                let options = [ currentAngle, currentAngle - Math.PI / 2, currentAngle + Math.PI / 2 ];
                 options = options.map(a => Math.atan2(Math.sin(a), Math.cos(a)));
 
                 let targetX = config.mapWidth / 2;
@@ -854,6 +852,7 @@
                         closestOrb = o;
                     }
                 });
+
                 if (closestOrb) {
                     targetX = closestOrb.x;
                     targetY = closestOrb.y;
@@ -869,618 +868,510 @@
                 let bestDir = currentAngle;
                 let maxSafeSteps = -1;
                 let safeOptions = [];
+                let stepStride = 16;
+                let maxLookAheadDist = 240;
 
-                let stepStride = 16; 
-                let maxLookAheadDist = 240; 
                 if (currentDifficulty === 'EASY') maxLookAheadDist = 80;
                 else if (currentDifficulty === 'MEDIUM') maxLookAheadDist = 160;
                 else if (currentDifficulty === 'EXPERT') maxLookAheadDist = 450;
 
-                for (let dir of options) {
+                for (let optAngle of options) {
                     let safeSteps = 0;
-                    let hitSomething = false;
+                    let lookAheadSteps = Math.ceil(maxLookAheadDist / stepStride);
+                    let hitObstacle = false;
 
-                    for (let distCheck = stepStride; distCheck <= maxLookAheadDist; distCheck += stepStride) {
-                        let checkX = head.x + Math.cos(dir) * distCheck;
-                        let checkY = head.y + Math.sin(dir) * distCheck;
+                    for (let step = 1; step <= lookAheadSteps; step++) {
+                        let testX = head.x + Math.cos(optAngle) * (step * stepStride);
+                        let testY = head.y + Math.sin(optAngle) * (step * stepStride);
 
-                        if (checkX < 45 || checkX > config.mapWidth - 45 || checkY < 45 || checkY > config.mapHeight - 45) {
-                            hitSomething = true;
+                        if (testX < 40 || testX > config.mapWidth - 40 || testY < 40 || testY > config.mapHeight - 40) {
+                            hitObstacle = true;
                             break;
                         }
 
                         for (let s of allSnakes) {
-                            if (s.segments.length === 0 || s.isProtected()) continue;
-                            for (let idx = 0; idx < s.segments.length; idx += 4) {
-                                if (s === this && idx < 12) continue;
-                                let seg = s.segments[idx];
-                                let dist = Math.hypot(checkX - seg.x, checkY - seg.y);
-                                if (dist < (this.baseRadius * 0.8 + s.baseRadius * 0.8)) {
-                                    hitSomething = true;
+                            if (s.isProtected() || this.isProtected()) continue;
+                            for (let i = 0; i < s.segments.length; i++) {
+                                if (s === this && i < 4) continue; 
+                                let seg = s.segments[i];
+                                let rThresh = (s.baseRadius + this.baseRadius) * 0.85;
+                                if (Math.hypot(testX - seg.x, testY - seg.y) < rThresh) {
+                                    hitObstacle = true;
                                     break;
                                 }
                             }
-                            if (hitSomething) break;
+                            if (hitObstacle) break;
                         }
-
-                        if (hitSomething) break;
+                        if (hitObstacle) break;
                         safeSteps++;
                     }
 
-                    if (!hitSomething) {
-                        safeOptions.push({ dir, steps: safeSteps, preferred: (dir === snappedTargetAngle) });
-                    } else {
-                        if (safeSteps > maxSafeSteps) {
-                            maxSafeSteps = safeSteps;
-                            bestDir = dir; 
-                        }
+                    if (!hitObstacle && safeSteps === lookAheadSteps) {
+                        safeOptions.push(optAngle);
+                    }
+                    if (safeSteps > maxSafeSteps) {
+                        maxSafeSteps = safeSteps;
+                        bestDir = optAngle;
                     }
                 }
 
                 if (safeOptions.length > 0) {
-                    let prefOpt = safeOptions.find(o => o.preferred);
-                    let straightOpt = safeOptions.find(o => Math.abs(Math.atan2(Math.sin(o.dir - currentAngle), Math.cos(o.dir - currentAngle))) < 0.1);
-
-                    let randomChance = 0.12;
-                    if (currentDifficulty === 'EASY') randomChance = 0.5;
-                    else if (currentDifficulty === 'EXPERT') randomChance = 0.05;
-
-                    if (prefOpt && Math.random() < randomChance) {
-                        bestDir = prefOpt.dir;
-                    } else if (straightOpt) {
-                        bestDir = straightOpt.dir; 
+                    if (safeOptions.includes(snappedTargetAngle) && Math.random() < 0.65) {
+                        bestDir = snappedTargetAngle;
+                    } else if (safeOptions.includes(currentAngle) && Math.random() < 0.90) {
+                        bestDir = currentAngle;
                     } else {
-                        safeOptions.sort((a, b) => b.steps - a.steps);
-                        bestDir = safeOptions[0].dir;
+                        bestDir = safeOptions[Math.floor(Math.random() * safeOptions.length)];
                     }
                 }
 
-                this.virtualCursor.x = head.x + Math.cos(bestDir) * 100;
-                this.virtualCursor.y = head.y + Math.sin(bestDir) * 100;
+                if (bestDir !== currentAngle) {
+                    if (bestDir === 0) this.nextDirection = 'RIGHT';
+                    if (bestDir === Math.PI/2) this.nextDirection = 'DOWN';
+                    if (bestDir === Math.PI) this.nextDirection = 'LEFT';
+                    if (bestDir === -Math.PI/2) this.nextDirection = 'UP';
+                }
             }
 
-            move(targetX, targetY) {
-                if(this.segments.length === 0 || this.isNetworkRemote) return;
-                const head = this.segments[0];
-                
-                let extraTiers = 0;
-                if (this.segments.length >= 100) {
-                    extraTiers = 1 + Math.floor((this.segments.length - 100) / 50);
-                }
-                this.baseRadius = config.baseRadius + (extraTiers * 4); 
+            move() {
+                if (this.segments.length === 0) return;
 
-                let calculatedSpeed = (currentGamemode === 'TRON' ? 4.5 : 3.5) + (this.segments.length * 0.01);
-                
-                // Difficulty Speed Scaling for Bots
-                if (!this.isPlayer) {
-                    if (currentDifficulty === 'EASY') calculatedSpeed *= 0.6;
-                    else if (currentDifficulty === 'MEDIUM') calculatedSpeed *= 0.85;
-                    else if (currentDifficulty === 'EXPERT') calculatedSpeed *= 1.25;
-                }
+                let head = this.segments[0];
+                let currentAngle = head.angle;
+                let targetAngle = currentAngle;
 
-                this.actuallyBoosting = this.isBoosting && (this.segments.length > config.minSegments);
-
-                if (this.actuallyBoosting) {
-                    calculatedSpeed += (currentDifficulty === 'EXPERT' && !this.isPlayer) ? 4.0 : 3.0; 
-                    if (Date.now() - this.lastBoostDrainTime > 200) {
-                        const droppedSegment = this.segments.pop(); 
-                        this.totalSegments = this.segments.length;
-
-                        if (Math.random() > 0.4) {
-                            orbs.push({
-                                x: droppedSegment.x + (Math.random() - 0.5) * 10,
-                                y: droppedSegment.y + (Math.random() - 0.5) * 10,
-                                radius: 3.5,
-                                color: `rgb(${this.startRGB.r}, ${this.startRGB.g}, ${this.startRGB.b})`,
-                                growthValue: 1
-                            });
-                        }
-                        this.lastBoostDrainTime = Date.now();
-                    }
-                }
+                this.actuallyBoosting = false;
+                let speed = 3.6;
 
                 if (currentGamemode === 'TRON') {
-                    if (this.isPlayer) {
-                        if (this.nextDirection) {
-                            this.currentDirection = this.nextDirection;
-                        }
-                        if (this.currentDirection === 'UP') head.angle = -Math.PI / 2;
-                        if (this.currentDirection === 'DOWN') head.angle = Math.PI / 2;
-                        if (this.currentDirection === 'LEFT') head.angle = Math.PI;
-                        if (this.currentDirection === 'RIGHT') head.angle = 0;
+                    speed = 4.8;
+                    if (this.isPlayer || this.isNetworkRemote) {
+                        this.currentDirection = this.nextDirection;
+                        if (this.currentDirection === 'UP') targetAngle = -Math.PI / 2;
+                        if (this.currentDirection === 'DOWN') targetAngle = Math.PI / 2;
+                        if (this.currentDirection === 'LEFT') targetAngle = Math.PI;
+                        if (this.currentDirection === 'RIGHT') targetAngle = 0;
                     } else {
-                        let requestedAngle = Math.atan2(targetY - head.y, targetX - head.x);
-                        let snappedAngle = 0;
-                        if (requestedAngle > -Math.PI/4 && requestedAngle <= Math.PI/4) snappedAngle = 0; 
-                        else if (requestedAngle > Math.PI/4 && requestedAngle <= 3*Math.PI/4) snappedAngle = Math.PI/2; 
-                        else if (requestedAngle > 3*Math.PI/4 || requestedAngle <= -3*Math.PI/4) snappedAngle = Math.PI; 
-                        else snappedAngle = -Math.PI/2; 
-
-                        let headingDifference = Math.abs(Math.atan2(Math.sin(snappedAngle - head.angle), Math.cos(snappedAngle - head.angle)));
-                        if (Math.abs(headingDifference - Math.PI) > 0.1) {
-                            head.angle = snappedAngle;
-                        }
+                        this.currentDirection = this.nextDirection;
+                        if (this.currentDirection === 'UP') targetAngle = -Math.PI / 2;
+                        if (this.currentDirection === 'DOWN') targetAngle = Math.PI / 2;
+                        if (this.currentDirection === 'LEFT') targetAngle = Math.PI;
+                        if (this.currentDirection === 'RIGHT') targetAngle = 0;
                     }
-
-                    let oldX = head.x;
-                    let oldY = head.y;
-                    let oldAngle = head.angle;
-
-                    head.x += Math.cos(head.angle) * calculatedSpeed;
-                    head.y += Math.sin(head.angle) * calculatedSpeed;
-
-                    for (let i = this.segments.length - 1; i > 0; i--) {
-                        this.segments[i].x = this.segments[i - 1].x;
-                        this.segments[i].y = this.segments[i - 1].y;
-                        this.segments[i].angle = this.segments[i - 1].angle;
-                    }
-                    if (this.segments.length > 1) {
-                        this.segments[1].x = oldX;
-                        this.segments[1].y = oldY;
-                        this.segments[1].angle = oldAngle;
-                    }
-
                 } else {
-                    let targetAngle = Math.atan2(targetY - head.y, targetX - head.x);
-                    if (!this.isPlayer) {
-                        let angleDiff = targetAngle - head.angle;
-                        angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff)); 
-                        
-                        let maxTurnRate = 0.14; 
-                        if (currentDifficulty === 'EASY') maxTurnRate = 0.08;
-                        else if (currentDifficulty === 'EXPERT') maxTurnRate = 0.20;
-
-                        if (Math.abs(angleDiff) > maxTurnRate) {
-                            targetAngle = head.angle + Math.sign(angleDiff) * maxTurnRate;
-                        }
+                    if (this.isPlayer) {
+                        let worldMouseX = mouse.x + camera.x;
+                        let worldMouseY = mouse.y + camera.y;
+                        targetAngle = Math.atan2(worldMouseY - head.y, worldMouseX - head.x);
+                        this.isBoosting = hardwareInput.boost;
+                    } else if (!this.isNetworkRemote) {
+                        targetAngle = Math.atan2(this.virtualCursor.y - head.y, this.virtualCursor.x - head.x);
                     }
-                    head.angle = targetAngle;
 
-                    head.x += Math.cos(head.angle) * calculatedSpeed;
-                    head.y += Math.sin(head.angle) * calculatedSpeed;
-
-                    for (let i = 1; i < this.segments.length; i++) {
-                        const prev = this.segments[i - 1];
-                        const curr = this.segments[i];
-                        const dx = prev.x - curr.x;
-                        const dy = prev.y - curr.y;
-                        const distance = Math.hypot(dx, dy);
-
-                        curr.angle = Math.atan2(dy, dx);
-                        if (distance > config.segmentLength) {
-                            curr.x = prev.x - Math.cos(curr.angle) * config.segmentLength;
-                            curr.y = prev.y - Math.sin(curr.angle) * config.segmentLength;
+                    if (this.isBoosting && this.segments.length > config.minSegments) {
+                        speed = 6.8;
+                        this.actuallyBoosting = true;
+                        if (Date.now() - this.lastBoostDrainTime > 160) {
+                            this.segments.pop();
+                            this.lastBoostDrainTime = Date.now();
                         }
                     }
                 }
+
+                if (this.isNetworkRemote) {
+                    return; 
+                }
+
+                if (currentGamemode !== 'TRON') {
+                    let angleDiff = targetAngle - currentAngle;
+                    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                    
+                    let turnRate = 0.09;
+                    if (this.isBoosting) turnRate = 0.065;
+                    head.angle = currentAngle + angleDiff * turnRate;
+                } else {
+                    head.angle = targetAngle;
+                }
+
+                let nextX = head.x + Math.cos(head.angle) * speed;
+                let nextY = head.y + Math.sin(head.angle) * speed;
+
+                if (nextX < 0) nextX = 0;
+                if (nextX > config.mapWidth) nextX = config.mapWidth;
+                if (nextY < 0) nextY = 0;
+                if (nextY > config.mapHeight) nextY = config.mapHeight;
+
+                let lastX = nextX;
+                let lastY = nextY;
+                let lastAngle = head.angle;
+
+                let stride = currentGamemode === 'TRON' ? 4 : config.segmentLength;
+
+                for (let i = 0; i < this.segments.length; i++) {
+                    let seg = this.segments[i];
+                    if (i === 0) {
+                        seg.x = nextX;
+                        seg.y = nextY;
+                    } else {
+                        if (currentGamemode === 'TRON') {
+                            let oldX = seg.x;
+                            let oldY = seg.y;
+                            let oldAngle = seg.angle;
+                            seg.x = lastX;
+                            seg.y = lastY;
+                            seg.angle = lastAngle;
+                            lastX = oldX;
+                            lastY = oldY;
+                            lastAngle = oldAngle;
+                        } else {
+                            let dx = seg.x - lastX;
+                            let dy = seg.y - lastY;
+                            let dist = Math.hypot(dx, dy);
+                            if (dist > stride) {
+                                let angle = Math.atan2(dy, dx);
+                                seg.x = lastX + Math.cos(angle) * stride;
+                                seg.y = lastY + Math.sin(angle) * stride;
+                                seg.angle = angle;
+                            }
+                            lastX = seg.x;
+                            lastY = seg.y;
+                        }
+                    }
+                }
+
+                this.baseRadius = config.baseRadius + Math.floor(this.segments.length / 35);
             }
 
             draw() {
-                let isVisible = true;
+                if (this.segments.length === 0) return;
+
+                let opacity = 1;
                 if (this.isProtected()) {
-                    isVisible = Math.floor(Date.now() / 150) % 2 === 0;
+                    opacity = 0.35 + Math.sin(Date.now() * 0.01) * 0.2;
                 }
 
                 ctx.save();
-                if (this.isProtected()) {
-                    ctx.globalAlpha = isVisible ? 0.6 : 0.15;
+                if (!config.ultraOptimization && !this.isProtected()) {
+                    ctx.shadowBlur = this.isPlayer ? 15 : 6;
+                    ctx.shadowColor = `rgba(${this.startRGB.r}, ${this.startRGB.g}, ${this.startRGB.b}, 0.5)`;
                 }
 
-                if (currentGamemode === 'TRON') {
-                    if (this.segments.length > 1) {
-                        ctx.save();
-                        ctx.lineCap = 'square';
-                        ctx.lineJoin = 'miter';
-                        ctx.lineWidth = this.baseRadius * 1.3;
-                        
-                        ctx.shadowBlur = this.actuallyBoosting ? 25 : 12; 
-                        ctx.shadowColor = `rgb(${this.startRGB.r}, ${this.startRGB.g}, ${this.startRGB.b})`;
-                        
-                        ctx.beginPath();
-                        ctx.moveTo(this.segments[0].x - camera.x, this.segments[0].y - camera.y);
-                        for (let i = 1; i < this.segments.length; i++) {
-                            ctx.lineTo(this.segments[i].x - camera.x, this.segments[i].y - camera.y);
-                        }
-                        
-                        ctx.strokeStyle = `rgb(${this.startRGB.r}, ${this.startRGB.g}, ${this.startRGB.b})`;
-                        ctx.stroke();
-                        ctx.restore();
+                for (let i = this.segments.length - 1; i >= 0; i--) {
+                    let seg = this.segments[i];
+                    let progress = i / this.segments.length;
+
+                    let r = Math.round(this.startRGB.r + (this.endRGB.r - this.startRGB.r) * progress);
+                    let g = Math.round(this.startRGB.g + (this.endRGB.g - this.startRGB.g) * progress);
+                    let b = Math.round(this.startRGB.b + (this.endRGB.b - this.startRGB.b) * progress);
+
+                    if (config.ultraOptimization && !this.isPlayer) {
+                        r = 240; g = 240; b = 240;
                     }
 
-                    let head = this.segments[0];
-                    ctx.save();
-                    ctx.translate(head.x - camera.x, head.y - camera.y);
-                    ctx.rotate(head.angle);
-                    ctx.fillStyle = '#ffffff';
-                    ctx.shadowBlur = 20;
-                    ctx.shadowColor = '#ffffff';
-                    ctx.fillRect(-this.baseRadius, -this.baseRadius, this.baseRadius * 2, this.baseRadius * 2);
-                    ctx.restore();
+                    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacity})`;
 
-                    ctx.save();
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-                    ctx.font = 'bold 11px Arial, sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.shadowColor = 'black';
-                    ctx.shadowBlur = 4;
-                    ctx.fillText(this.name + (this.actuallyBoosting ? " ⚡" : ""), head.x - camera.x, head.y - camera.y - this.baseRadius - 12);
-                    ctx.restore();
+                    let sizePercent = 1 - (progress * 0.45);
+                    let rSize = this.baseRadius * sizePercent;
 
-                } else {
-                    const isWhiteOut = config.ultraOptimization && !this.isPlayer;
-
-                    for (let i = this.segments.length - 1; i >= 0; i--) {
-                        const seg = this.segments[i];
-                        const progress = i / this.segments.length;
-                        const radius = this.baseRadius * (1 - progress * 0.72);
-
-                        let colorStr;
-                        if (isWhiteOut) {
-                            colorStr = '#ffffff';
-                        } else {
-                            const r = Math.round(this.startRGB.r + (this.endRGB.r - this.startRGB.r) * progress);
-                            const g = Math.round(this.startRGB.g + (this.endRGB.g - this.startRGB.g) * progress);
-                            const b = Math.round(this.startRGB.b + (this.endRGB.b - this.startRGB.b) * progress);
-                            colorStr = `rgb(${r}, ${g}, ${b})`;
-                        }
-
-                        ctx.save();
-                        ctx.translate(seg.x - camera.x, seg.y - camera.y);
-                        ctx.rotate(seg.angle);
-
-                        if (i === 0 && !config.ultraOptimization) {
-                            ctx.shadowBlur = this.actuallyBoosting ? 25 : 15; 
-                            ctx.shadowColor = this.isProtected() ? '#00ffc8' : colorStr;
-                        }
-
-                        ctx.fillStyle = colorStr;
+                    if (currentGamemode === 'TRON') {
+                        rSize = this.baseRadius * 0.75;
+                        ctx.fillRect(seg.x - rSize - camera.x, seg.y - rSize - camera.y, rSize * 2, rSize * 2);
+                    } else {
                         ctx.beginPath();
-                        ctx.ellipse(0, 0, radius, radius * 0.8, 0, 0, Math.PI * 2);
+                        ctx.arc(seg.x - camera.x, seg.y - camera.y, rSize, 0, Math.PI * 2);
                         ctx.fill();
-
-                        if (i === 0) {
-                            if (!config.ultraOptimization) ctx.shadowBlur = 5;
-                            ctx.fillStyle = (this.isPlayer) ? '#ffffff' : (isWhiteOut ? '#dddddd' : '#ff3333');
-                            if (this.actuallyBoosting) ctx.fillStyle = '#ffea00'; 
-                            
-                            ctx.beginPath(); ctx.arc(radius * 0.4, -radius * 0.4, 3, 0, Math.PI * 2); ctx.fill();
-                            ctx.beginPath(); ctx.arc(radius * 0.4, radius * 0.4, 3, 0, Math.PI * 2); ctx.fill();
-                        }
-                        ctx.restore();
-
-                        if (i === 0) {
-                            ctx.save();
-                            ctx.fillStyle = this.actuallyBoosting ? '#ffea00' : (isWhiteOut ? '#dddddd' : 'rgba(255, 255, 255, 0.85)');
-                            ctx.font = 'bold 12px Arial, sans-serif';
-                            ctx.textAlign = 'center';
-                            if (!config.ultraOptimization) {
-                                ctx.shadowColor = 'black';
-                                ctx.shadowBlur = 4;
-                            }
-                            
-                            let nameTag = this.name;
-                            if (this.actuallyBoosting) nameTag += " ⚡";
-                            ctx.fillText(nameTag, seg.x - camera.x, seg.y - camera.y - radius - 12);
-                            ctx.restore();
-                        }
                     }
                 }
+
+                let head = this.segments[0];
+                ctx.restore();
+
+                ctx.save();
+                ctx.fillStyle = config.ultraOptimization && !this.isPlayer ? '#ffffff' : '#ffffff';
+                ctx.font = `bold 12px 'Segoe UI', Arial`;
+                ctx.textAlign = 'center';
+                ctx.shadowBlur = 4;
+                ctx.shadowColor = '#000000';
+                ctx.fillText(this.name, head.x - camera.x, head.y - this.baseRadius - camera.y - 8);
                 ctx.restore();
             }
         }
 
-        function setupLANConnection(ipString) {
-            try {
-                socket = new WebSocket(`ws://${ipString}`);
-                
-                socket.onopen = () => {
-                    isMultiplayerMode = true;
-                    menuOverlay.classList.add('hidden');
-                    gameHud.style.display = 'block';
-                    initGame();
-                    gameState = 'PLAYING';
-                    
-                    socket.send(JSON.stringify({
-                        type: 'join',
-                        name: player.name,
-                        startRGB: player.startRGB,
-                        endRGB: player.endRGB
-                    }));
-                };
-
-                socket.onmessage = (event) => {
-                    const data = JSON.parse(event.data);
-                    
-                    if (data.type === 'init') {
-                        myNetworkId = data.id;
-                    }
-
-                    if (data.type === 'update') {
-                        snakes = snakes.filter(s => !s.isNetworkRemote || data.players[s.networkId]);
-                        
-                        for (let id in data.players) {
-                            if (id === myNetworkId) continue;
-                            let netData = data.players[id];
-                            let remoteSnake = snakes.find(s => s.networkId === id);
-                            
-                            if (!remoteSnake) {
-                                remoteSnake = new Snake(0, 0, false, netData.name);
-                                remoteSnake.isNetworkRemote = true;
-                                remoteSnake.networkId = id;
-                                remoteSnake.startRGB = netData.startRGB;
-                                remoteSnake.endRGB = netData.endRGB;
-                                snakes.push(remoteSnake);
-                            }
-                            
-                            remoteSnake.segments = netData.segments;
-                            remoteSnake.baseRadius = netData.baseRadius;
-                            remoteSnake.spawnTime = netData.spawnTime;
-                            remoteSnake.actuallyBoosting = netData.actuallyBoosting;
-                        }
-                    }
-
-                    if (data.type === 'spawnDeathOrbs') {
-                        data.segments.forEach((seg, index) => {
-                            if (index % 6 === 0) {
-                                const progress = index / data.segments.length;
-                                const r = Math.round(data.startRGB.r + (data.endRGB.r - data.startRGB.r) * progress);
-                                const g = Math.round(data.startRGB.g + (data.endRGB.g - data.startRGB.g) * progress);
-                                const b = Math.round(data.startRGB.b + (data.endRGB.b - data.startRGB.b) * progress);
-                                orbs.push({
-                                    x: seg.x + (Math.random() - 0.5) * 20,
-                                    y: seg.y + (Math.random() - 0.5) * 20,
-                                    radius: Math.random() * 2 + 6, 
-                                    color: currentGamemode === 'TRON' ? '#ff006e' : `rgb(${r}, ${g}, ${b})`,
-                                    growthValue: currentGamemode === 'TRON' ? 1 : 3 
-                                });
-                            }
-                        });
-                    }
-                };
-
-                socket.onclose = () => {
-                    alert("Disconnected from LAN server.");
-                    location.reload();
-                };
-                
-                socket.onerror = () => {
-                    alert("Could not establish a connection to the targeted LAN server.");
-                };
-
-            } catch (e) {
-                alert("Invalid address format target.");
-            }
-        }
-
-        function initGame() {
-            snakes = [];
-            particles = [];
-            orbs = []; 
-            
-            const playerNick = document.getElementById('nickname').value.trim() || 'Player';
-            player = new Snake(config.mapWidth / 2, config.mapHeight / 2, true, playerNick);
-            player.startRGB = hexToRgb(document.getElementById('headColor').value);
-            player.endRGB = hexToRgb(document.getElementById('tailColor').value);
-            
-            player.currentDirection = 'RIGHT';
-            player.nextDirection = 'RIGHT';
-            snakes.push(player);
-
-            if (!isMultiplayerMode) {
-                for (let i = 0; i < config.maxNPCs; i++) {
-                    spawnNPC();
-                }
-            }
-            lastScoreDrainTime = Date.now();
-            hardwareInput.boost = false; 
-        }
-
-        function spawnNPC() {
-            let x = Math.random() * (config.mapWidth - 400) + 200;
-            let y = Math.random() * (config.mapHeight - 400) + 200;
-            if (player && Math.hypot(x - player.segments[0].x, y - player.segments[0].y) < 300) {
-                x = (x + 500) % (config.mapWidth - 400) + 200;
-            }
-            const randomName = npcNames[Math.floor(Math.random() * npcNames.length)] + " [" + Math.floor(Math.random()*900+100) + "]";
-            snakes.push(new Snake(x, y, false, randomName));
-        }
-
-        function handleCombat() {
-            let deadSnakes = new Set();
-
-            for (let a = 0; a < snakes.length; a++) {
-                let currentSnake = snakes[a];
-                if (currentSnake.segments.length === 0 || currentSnake.isNetworkRemote) continue; 
-                
-                if (currentSnake.isProtected()) continue;
-
-                let head = currentSnake.segments[0];
-
-                if (head.x < 0 || head.x > config.mapWidth || head.y < 0 || head.y > config.mapHeight) {
-                    deadSnakes.add(currentSnake);
-                    currentSnake.segments.forEach(seg => {
-                        let colorStr = `rgb(${currentSnake.startRGB.r}, ${currentSnake.startRGB.g}, ${currentSnake.startRGB.b})`;
-                        spawnParticles(seg.x, seg.y, colorStr);
+        function spawnOrbsFromSegments(segments, startRGB, endRGB) {
+            segments.forEach((seg, index) => {
+                if (index % 6 === 0) {
+                    const progress = index / segments.length;
+                    const r = Math.round(startRGB.r + (endRGB.r - startRGB.r) * progress);
+                    const g = Math.round(startRGB.g + (endRGB.g - startRGB.g) * progress);
+                    const b = Math.round(startRGB.b + (endRGB.b - startRGB.b) * progress);
+                    orbs.push({
+                        x: seg.x + (Math.random() - 0.5) * 20,
+                        y: seg.y + (Math.random() - 0.5) * 20,
+                        radius: Math.random() * 2 + 6,
+                        color: `rgb(${r}, ${g}, ${b})`,
+                        growthValue: currentGamemode === 'TRON' ? 1 : 3
                     });
-                    dropOrbsFromDeath(currentSnake);
-                    continue;
-                }
-
-                for (let v = 0; v < snakes.length; v++) {
-                    let targetSnake = snakes[v];
-                    if (targetSnake.segments.length === 0 || targetSnake.isProtected()) continue;
-
-                    let checkStride = currentGamemode === 'TRON' ? 1 : 2;
-
-                    for (let s = 0; s < targetSnake.segments.length; s += checkStride) {
-                        if (currentGamemode === 'TRON') {
-                            if (currentSnake === targetSnake && s <= 15) continue; 
-                        } else {
-                            if (currentSnake === targetSnake) continue;
-                        }
-
-                        let bodySeg = targetSnake.segments[s];
-                        let dist = Math.hypot(head.x - bodySeg.x, head.y - bodySeg.y);
-                        
-                        let segmentRadius = currentGamemode === 'TRON' ? targetSnake.baseRadius : targetSnake.baseRadius * (1 - (s / targetSnake.segments.length) * 0.72);
-                        let collisionThreshold = currentGamemode === 'TRON' ? (currentSnake.baseRadius * 0.8 + segmentRadius * 0.8) : (currentSnake.baseRadius * 0.6 + segmentRadius * 0.6);
-
-                        if (dist < collisionThreshold) {
-                            deadSnakes.add(currentSnake);
-                            currentSnake.segments.forEach(seg => {
-                                let colorStr = `rgb(${currentSnake.startRGB.r}, ${currentSnake.startRGB.g}, ${currentSnake.startRGB.b})`;
-                                if(Math.random() > 0.5) spawnParticles(seg.x, seg.y, colorStr);
-                            });
-                            dropOrbsFromDeath(currentSnake);
-                            break;
-                        }
-                    }
-                }
-            }
-
-            deadSnakes.forEach(deadSnake => {
-                if (deadSnake.isPlayer) {
-                    if (isMultiplayerMode && socket && socket.readyState === WebSocket.OPEN) {
-                        socket.send(JSON.stringify({
-                            type: 'death',
-                            segments: player.segments,
-                            startRGB: player.startRGB,
-                            endRGB: player.endRGB
-                        }));
-                    }
-
-                    gameState = 'GAMEOVER';
-                    deathStats.innerText = `Final Score: ${deadSnake.segments.length}`;
-                    gameHud.style.display = 'none';
-                    gameLeaderboard.style.display = 'none';
-                    deathOverlay.classList.remove('hidden');
-                } else {
-                    let index = snakes.indexOf(deadSnake);
-                    if (index !== -1) {
-                        snakes.splice(index, 1);
-                        setTimeout(spawnNPC, 1200); 
-                    }
                 }
             });
         }
 
-        function handleOrbs() {
-            maintainPassiveOrbs();
+        function checkCollisions() {
+            if (!player || player.segments.length === 0) return;
+            let pHead = player.segments[0];
 
             for (let i = orbs.length - 1; i >= 0; i--) {
-                let orb = orbs[i];
-                let orbColor = config.ultraOptimization ? '#ffffff' : orb.color;
-
-                ctx.save();
-                if (!config.ultraOptimization) {
-                    ctx.shadowBlur = 10;
-                    ctx.shadowColor = orb.color;
+                let o = orbs[i];
+                let d = Math.hypot(pHead.x - o.x, pHead.y - o.y);
+                if (d < player.baseRadius + o.radius) {
+                    spawnParticles(o.x, o.y, o.color);
+                    for (let g = 0; g < o.growthValue; g++) {
+                        let tail = player.segments[player.segments.length - 1];
+                        player.segments.push({ x: tail.x, y: tail.y, angle: tail.angle });
+                    }
+                    orbs.splice(i, 1);
                 }
-                ctx.fillStyle = orbColor;
-                ctx.beginPath();
-                ctx.arc(orb.x - camera.x, orb.y - camera.y, orb.radius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
+            }
 
-                if (gameState === 'PLAYING') {
-                    for (let s = 0; s < snakes.length; s++) {
-                        let snake = snakes[s];
-                        if (snake.segments.length === 0 || snake.isNetworkRemote) continue; 
+            snakes.forEach(s => {
+                if (s === player || s.segments.length === 0) return;
+                for (let i = orbs.length - 1; i >= 0; i--) {
+                    let o = orbs[i];
+                    let sHead = s.segments[0];
+                    if (Math.hypot(sHead.x - o.x, sHead.y - o.y) < s.baseRadius + o.radius) {
+                        for (let g = 0; g < o.growthValue; g++) {
+                            let tail = s.segments[s.segments.length - 1];
+                            s.segments.push({ x: tail.x, y: tail.y, angle: tail.angle });
+                        }
+                        orbs.splice(i, 1);
+                    }
+                }
+            });
 
-                        let head = snake.segments[0];
-                        let dist = Math.hypot(head.x - orb.x, head.y - orb.y);
+            if (!player.isProtected()) {
+                for (let s of snakes) {
+                    if (s === player || s.segments.length === 0) continue;
+                    if (s.isProtected()) continue;
 
-                        if (dist < snake.baseRadius + orb.radius) {
-                            for (let g = 0; g < orb.growthValue; g++) {
-                                let lastSeg = snake.segments[snake.segments.length - 1];
-                                snake.segments.push({ x: lastSeg.x, y: lastSeg.y, angle: lastSeg.angle });
-                            }
-                            snake.totalSegments = snake.segments.length;
-                            orbs.splice(i, 1);
-                            break; 
+                    let startIdx = 0;
+                    if (s.isNetworkRemote) startIdx = 0; 
+
+                    for (let i = startIdx; i < s.segments.length; i++) {
+                        if (s === player && i < 4) continue; 
+                        let seg = s.segments[i];
+                        let rThresh = pHead.baseRadius + s.baseRadius;
+                        if (currentGamemode === 'TRON') rThresh = (pHead.baseRadius + s.baseRadius) * 0.75;
+
+                        if (Math.hypot(pHead.x - seg.x, pHead.y - seg.y) < rThresh * 0.85) {
+                            handlePlayerDeath();
+                            return;
                         }
                     }
                 }
             }
-        }
 
-        function updateParticles() {
-            for (let i = particles.length - 1; i >= 0; i--) {
-                let p = particles[i];
-                p.x += p.vx; p.y += p.vy; p.alpha -= 0.02;
-                if (p.alpha <= 0) { particles.splice(i, 1); } 
-                else {
-                    ctx.save();
-                    ctx.globalAlpha = p.alpha;
-                    ctx.fillStyle = p.color;
-                    ctx.beginPath(); ctx.arc(p.x - camera.x, p.y - camera.y, p.radius, 0, Math.PI * 2); ctx.fill();
-                    ctx.restore();
+            for (let s of snakes) {
+                if (s === player || s.segments.length === 0 || s.isProtected()) continue;
+
+                let sHead = s.segments[0];
+                let died = false;
+
+                for (let other of snakes) {
+                    if (other.segments.length === 0 || other.isProtected()) continue;
+
+                    let startIdx = 0;
+                    for (let i = startIdx; i < other.segments.length; i++) {
+                        if (other === s && i < 4) continue;
+                        let seg = other.segments[i];
+                        let rThresh = s.baseRadius + other.baseRadius;
+                        if (currentGamemode === 'TRON') rThresh = (s.baseRadius + other.baseRadius) * 0.75;
+
+                        if (Math.hypot(sHead.x - seg.x, seg.y - seg.y) < rThresh * 0.85) {
+                            died = true;
+                            break;
+                        }
+                    }
+                    if (died) break;
+                }
+
+                if (died) {
+                    dropOrbsFromDeath(s);
+                    if (isMultiplayerMode && socket && socket.readyState === 1 && s.isNetworkRemote) {
+                    } else {
+                        let idx = snakes.indexOf(s);
+                        if (idx !== -1) snakes.splice(idx, 1);
+                        setTimeout(() => {
+                            if (gameState === 'PLAYING') {
+                                const randomName = npcNames[Math.floor(Math.random() * npcNames.length)] + " [" + Math.floor(Math.random()*900+100) + "]";
+                                snakes.push(new Snake(Math.random()*config.mapWidth, Math.random()*config.mapHeight, false, randomName));
+                            }
+                        }, 2500);
+                    }
                 }
             }
         }
 
-        function handlePassiveScoreDrain() {
-            if (currentGamemode === 'TRON') return; 
+        function handlePlayerDeath() {
+            if (isMultiplayerMode && socket && socket.readyState === 1) {
+                socket.send(JSON.stringify({
+                    type: 'death',
+                    segments: player.segments,
+                    startRGB: player.startRGB,
+                    endRGB: player.endRGB
+                }));
+            }
 
-            if (Date.now() - lastScoreDrainTime >= 1000) {
-                snakes.forEach(snake => {
-                    if (snake.isNetworkRemote) return;
-                    if (!snake.actuallyBoosting && snake.segments.length > config.minSegments) {
-                        snake.segments.pop();
-                        snake.totalSegments = snake.segments.length;
-                    }
-                });
-                lastScoreDrainTime = Date.now();
+            dropOrbsFromDeath(player);
+            spawnParticles(player.segments[0].x, player.segments[0].y, '#ff3232');
+            
+            gameState = 'GAMEOVER';
+            deathStats.innerText = `Final Score: ${player.segments.length} segments collected`;
+            
+            deathOverlay.classList.remove('hidden');
+            gameHud.style.display = 'none';
+            gameLeaderboard.style.display = 'none';
+            
+            let idx = snakes.indexOf(player);
+            if (idx !== -1) snakes.splice(idx, 1);
+            player = null;
+        }
+
+        function syncNetworkPlayersData() {
+            for (let id in networkPlayers) {
+                if (id === myNetworkId) continue; 
+                let data = networkPlayers[id];
+                let remoteSnake = snakes.find(s => s.networkId === id);
+
+                if (!remoteSnake) {
+                    remoteSnake = new Snake(0, 0, false, data.name);
+                    remoteSnake.isNetworkRemote = true;
+                    remoteSnake.networkId = id;
+                    snakes.push(remoteSnake);
+                }
+
+                remoteSnake.startRGB = data.startRGB;
+                remoteSnake.endRGB = data.endRGB;
+                remoteSnake.baseRadius = data.baseRadius;
+                remoteSnake.spawnTime = data.spawnTime;
+                remoteSnake.actuallyBoosting = data.actuallyBoosting;
+                remoteSnake.segments = data.segments;
+            }
+
+            for (let i = snakes.length - 1; i >= 0; i--) {
+                let s = snakes[i];
+                if (s.isNetworkRemote && !networkPlayers[s.networkId]) {
+                    snakes.splice(i, 1);
+                }
             }
         }
 
-        function animate() {
-            if (config.motionBlur) {
-                ctx.fillStyle = currentGamemode === 'TRON' ? 'rgba(4, 4, 10, 0.35)' : 'rgba(4, 4, 6, 0.25)'; 
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-            } else {
-                ctx.fillStyle = '#040406'; 
+        function localSnakeInit(name, headHex, tailHex) {
+            orbs = [];
+            particles = [];
+            snakes = [];
+
+            player = new Snake(config.mapWidth / 2, config.mapHeight / 2, true, name);
+            player.startRGB = hexToRgb(headHex);
+            player.endRGB = hexToRgb(tailHex);
+            snakes.push(player);
+
+            if (!isMultiplayerMode) {
+                for(let i=0; i<config.maxNPCs; i++) {
+                    const randomName = npcNames[Math.floor(Math.random() * npcNames.length)] + " [" + Math.floor(Math.random()*900+100) + "]";
+                    snakes.push(new Snake(Math.random()*config.mapWidth, Math.random()*config.mapHeight, false, randomName));
+                }
+            }
+
+            maintainPassiveOrbs();
+            gameState = 'PLAYING';
+        }
+
+        let networkPlayers = {};
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (config.motionBlur && gameState === 'PLAYING') {
+                ctx.fillStyle = 'rgba(4, 4, 6, 0.28)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
 
-            // CHANGED FOV SETTINGS TO ZOOM IN
-            let dynamicFOV = 1000; // Base FOV lowered to 1000
-            if (player && player.segments.length > 50) {
-                dynamicFOV += (player.segments.length - 50) * 1.2; 
-                dynamicFOV = Math.min(dynamicFOV, 2500); 
-            }
-            
-            const currentDpr = window.devicePixelRatio || 1;
-            logicalScale = (canvas.height / currentDpr) / dynamicFOV;
-            
-            let logicWidth = canvas.width / (logicalScale * currentDpr);
-            let logicHeight = canvas.height / (logicalScale * currentDpr);
+            if (player && player.segments.length > 0) {
+                let pHead = player.segments[0];
+                let targetCamX = pHead.x - (canvas.width / 2) / logicalScale;
+                let targetCamY = pHead.y - (canvas.height / 2) / logicalScale;
+                
+                camera.x += (targetCamX - camera.x) * 0.1;
+                camera.y += (targetCamY - camera.y) * 0.1;
 
-            if (gameState === 'PLAYING' && player && player.segments.length > 0) {
-                camera.x = player.segments[0].x - logicWidth / 2;
-                camera.y = player.segments[0].y - logicHeight / 2;
+                let desiredScale = 1 - (player.segments.length * 0.0006);
+                if (desiredScale < 0.55) desiredScale = 0.55;
+                logicalScale += (desiredScale - logicalScale) * 0.05;
             } else {
-                camera.x = config.mapWidth / 2 - logicWidth / 2;
-                camera.y = config.mapHeight / 2 - logicHeight / 2;
+                camera.x = 0;
+                camera.y = 0;
+                logicalScale = 1;
             }
 
             ctx.save();
-            ctx.scale(logicalScale * currentDpr, logicalScale * currentDpr); 
+            ctx.scale(logicalScale, logicalScale);
 
             drawHexGrid();
             drawArenaBoundaries();
-            handleOrbs(); 
-            updateParticles();
 
-            if (gameState === 'PLAYING') {
-                handlePassiveScoreDrain();
-                handleCombat();
-                
-                if (player) {
-                    player.isBoosting = hardwareInput.boost;
+            if (gameState === 'PLAYING' || gameState === 'GAMEOVER' || gameState === 'SETTINGS') {
+                maintainPassiveOrbs();
+
+                for (let i = orbs.length - 1; i >= 0; i--) {
+                    let o = orbs[i];
+                    ctx.save();
+                    ctx.fillStyle = o.color;
+                    if (!config.ultraOptimization) {
+                        ctx.shadowBlur = o.radius * 1.5;
+                        ctx.shadowColor = o.color;
+                    }
+                    ctx.beginPath();
+                    ctx.arc(o.x - camera.x, o.y - camera.y, o.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
                 }
 
-                if (isMultiplayerMode && socket && socket.readyState === WebSocket.OPEN && player) {
+                snakes.forEach(s => {
+                    s.updateAI(snakes);
+                    s.move();
+                    s.draw();
+                });
+
+                if (gameState === 'PLAYING') {
+                    checkCollisions();
+                }
+
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    let p = particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.alpha -= 0.02;
+                    if (p.alpha <= 0) {
+                        particles.splice(i, 1);
+                        continue;
+                    }
+                    ctx.save();
+                    ctx.globalAlpha = p.alpha;
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x - camera.x, p.y - camera.y, p.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+
+            ctx.restore();
+
+            if (gameState === 'PLAYING' && player) {
+                gameHud.style.display = 'block';
+                gameHud.innerText = `Score: ${player.segments.length} | Size Radius: ${player.baseRadius} | Entities: ${snakes.length}`;
+                
+                if (isMultiplayerMode && socket && socket.readyState === 1) {
                     socket.send(JSON.stringify({
                         type: 'sync',
                         segments: player.segments,
@@ -1489,134 +1380,131 @@
                         actuallyBoosting: player.actuallyBoosting
                     }));
                 }
-
-                snakes.forEach(snake => {
-                    if (snake.isPlayer) {
-                        if (currentGamemode === 'TRON') {
-                            snake.move(); 
-                        } else {
-                            let mappedTargetX = snake.segments[0].x + (mouse.x / (logicalScale * currentDpr) - logicWidth / 2);
-                            let mappedTargetY = snake.segments[0].y + (mouse.y / (logicalScale * currentDpr) - logicHeight / 2);
-                            snake.move(mappedTargetX, mappedTargetY);
-                        }
-                    } else if (!snake.isNetworkRemote) {
-                        snake.updateAI(snakes);
-                        snake.move(snake.virtualCursor.x, snake.virtualCursor.y);
-                    }
-                    snake.draw();
-                });
-
-                let widthTier = 1;
-                if (player.segments.length >= 100) {
-                    widthTier = 2 + Math.floor((player.segments.length - 100) / 50);
-                }
-                
-                gameHud.innerText = `${currentGamemode === 'TRON' ? 'Tron Grid' : 'Score'}: ${player.segments.length} | Width Tier: ${widthTier} | Arena Players: ${snakes.length}`;
-                
-                ctx.restore(); 
-                drawMinimap(); 
-                updateLeaderboard();
-            } else {
-                snakes.forEach(snake => {
-                    if (!snake.isPlayer && !snake.isNetworkRemote) {
-                        snake.updateAI(snakes);
-                        snake.move(snake.virtualCursor.x, snake.virtualCursor.y);
-                        snake.draw();
-                    }
-                });
-                ctx.restore();
-                gameLeaderboard.style.display = 'none';
             }
+            
+            updateLeaderboard();
+            if (gameState === 'PLAYING') drawMinimap();
 
-            requestAnimationFrame(animate);
+            requestAnimationFrame(gameLoop);
         }
 
-        // ==========================================
-        // UI CODE & MODE SWITCH INTERFACES
-        // ==========================================
-
-        // DIFFICULTY BUTTONS LOGIC
-        const diffBtns = [
-            document.getElementById('diffEasyBtn'),
-            document.getElementById('diffMedBtn'),
-            document.getElementById('diffHardBtn'),
-            document.getElementById('diffExpBtn')
-        ];
-        
-        diffBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                diffBtns.forEach(b => b.classList.remove('active-diff'));
-                e.target.classList.add('active-diff');
-                currentDifficulty = e.target.getAttribute('data-diff');
-            });
-        });
-
-        // GAMEMODE BUTTON LOGIC
-        modeDefaultBtn.addEventListener('click', () => {
-            currentGamemode = 'DEFAULT';
-            modeDefaultBtn.classList.add('active-diff');
-            modeTronBtn.classList.remove('active-diff');
-            lanIpInput.value = "localhost:3000";
-        });
-
-        modeTronBtn.addEventListener('click', () => {
-            currentGamemode = 'TRON';
-            modeTronBtn.classList.add('active-diff');
-            modeDefaultBtn.classList.remove('active-diff');
-            lanIpInput.value = "localhost:3001";
-        });
-
+        // Click Logic Setup
         document.getElementById('startBtn').addEventListener('click', () => {
             isMultiplayerMode = false;
+            if (socket) { socket.close(); socket = null; }
             menuOverlay.classList.add('hidden');
-            gameHud.style.display = 'block';
-            initGame();
-            gameState = 'PLAYING';
+            
+            const nickname = document.getElementById('nickname').value || 'Anonymous';
+            localSnakeInit(nickname, document.getElementById('headColor').value, document.getElementById('tailColor').value);
         });
 
         document.getElementById('lanBtn').addEventListener('click', () => {
-            const targetIp = document.getElementById('lanIp').value.trim();
-            if(!targetIp) {
-                alert("Please provide a valid LAN IP address configuration targeting your running server instance.");
-                return;
+            // 1. Automatically switch between secure wss:// (Render) and standard ws:// (Local)
+            const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+            
+            // 2. Fall back to your input field or localhost if running locally on your PC
+            let host = window.location.host;
+            if (!host || host.startsWith('127.0.0.1') || host.startsWith('localhost') || window.location.protocol === 'file:') {
+                host = lanIpInput.value || 'localhost:3000';
             }
-            setupLANConnection(targetIp);
+            
+            const serverUrl = protocol + host;
+            console.log(`📡 Attempting connection to global arena at: ${serverUrl}`);
+
+            socket = new WebSocket(serverUrl);
+
+            socket.onopen = () => {
+                console.log("⚡ Connected into the multiplayer cluster successfully!");
+                isMultiplayerMode = true;
+                
+                const nameChoice = document.getElementById('nickname').value || 'Anonymous';
+                localSnakeInit(nameChoice, document.getElementById('headColor').value, document.getElementById('tailColor').value);
+
+                const joinPacket = {
+                    type: 'join',
+                    name: nameChoice,
+                    startRGB: hexToRgb(document.getElementById('headColor').value),
+                    endRGB: hexToRgb(document.getElementById('tailColor').value)
+                };
+                socket.send(JSON.stringify(joinPacket));
+                
+                menuOverlay.classList.add('hidden');
+                gameHud.style.display = 'block';
+                gameState = 'PLAYING';
+            };
+
+            socket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.type === 'init') {
+                        myNetworkId = data.id;
+                        if (player) player.networkId = myNetworkId;
+                    }
+                    
+                    if (data.type === 'update') {
+                        networkPlayers = data.players;
+                        syncNetworkPlayersData();
+                    }
+
+                    if (data.type === 'spawnDeathOrbs') {
+                        spawnOrbsFromSegments(data.segments, data.startRGB, data.endRGB);
+                    }
+                } catch (e) {
+                    console.error("Failed processing cluster payloads:", e);
+                }
+            };
+
+            socket.onclose = () => {
+                console.warn("❌ Disconnected from server cluster.");
+                if (gameState === 'PLAYING' && isMultiplayerMode) {
+                    isMultiplayerMode = false;
+                    gameState = 'MENU';
+                    menuOverlay.classList.remove('hidden');
+                    gameHud.style.display = 'none';
+                    gameLeaderboard.style.display = 'none';
+                    alert("Connection to the server was lost!");
+                }
+            };
         });
 
         document.getElementById('respawnBtn').addEventListener('click', () => {
             deathOverlay.classList.add('hidden');
-            gameHud.style.display = 'block';
-            initGame();
-            gameState = 'PLAYING';
-            if (isMultiplayerMode && socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({
-                    type: 'join',
-                    name: player.name,
-                    startRGB: player.startRGB,
-                    endRGB: player.endRGB
-                }));
+            const nickname = document.getElementById('nickname').value || 'Anonymous';
+            
+            if (isMultiplayerMode) {
+                document.getElementById('lanBtn').click();
+            } else {
+                localSnakeInit(nickname, document.getElementById('headColor').value, document.getElementById('tailColor').value);
             }
         });
 
         document.getElementById('backToMenuBtn').addEventListener('click', () => {
             deathOverlay.classList.add('hidden');
             menuOverlay.classList.remove('hidden');
-            gameHud.style.display = 'none';
-            gameLeaderboard.style.display = 'none';
             gameState = 'MENU';
             isMultiplayerMode = false;
-            if (socket) {
-                socket.close();
-                socket = null;
-            }
-            
-            snakes = [];
-            orbs = [];
-            particles = [];
-            for(let i=0; i<config.maxNPCs; i++) {
-                const randomName = npcNames[Math.floor(Math.random() * npcNames.length)] + " [" + Math.floor(Math.random()*900+100) + "]";
-                snakes.push(new Snake(Math.random()*config.mapWidth, Math.random()*config.mapHeight, false, randomName));
-            }
+            if (socket) { socket.close(); socket = null; }
+        });
+
+        modeDefaultBtn.addEventListener('click', () => {
+            currentGamemode = 'DEFAULT';
+            modeDefaultBtn.classList.add('active-diff');
+            modeTronBtn.classList.remove('active-diff');
+        });
+
+        modeTronBtn.addEventListener('click', () => {
+            currentGamemode = 'TRON';
+            modeTronBtn.classList.add('active-diff');
+            modeDefaultBtn.classList.remove('active-diff');
+        });
+
+        document.querySelectorAll('[data-diff]').forEach(button => {
+            button.addEventListener('click', (e) => {
+                document.querySelectorAll('[data-diff]').forEach(b => b.classList.remove('active-diff'));
+                e.target.classList.add('active-diff');
+                currentDifficulty = e.target.getAttribute('data-diff');
+            });
         });
 
         blurToggle.addEventListener('change', (e) => {
@@ -1648,12 +1536,8 @@
             }
         });
 
-        for(let i=0; i<config.maxNPCs; i++) {
-            const randomName = npcNames[Math.floor(Math.random() * npcNames.length)] + " [" + Math.floor(Math.random()*900+100) + "]";
-            snakes.push(new Snake(Math.random()*config.mapWidth, Math.random()*config.mapHeight, false, randomName));
-        }
-
-        animate();
+        // Start running loops immediately
+        requestAnimationFrame(gameLoop);
     </script>
 </body>
 </html>
