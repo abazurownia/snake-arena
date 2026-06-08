@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Arena</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #040406;
+            cursor: default; 
+            font-family: 'Segoe UI', Arial, sans-serif;
+            user-select: none;
+        }
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        /* Glassmorphic UI Overlays */
+        .screen-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(4, 4, 6, 0.6);
+            backdrop-filter: blur(8px);
+            color: #fff;
+            transition: opacity 0.4s ease, visibility 0.4s;
+        }
+        
+        .ui-box {
+            background: rgba(15, 15, 30, 0.85);
+            border: 1px solid rgba(0, 255, 200, 0.2);
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.6);
+            max-width: 450px;
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        h1 {
+            font-size: 28px;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            color: #00ffc8;
+            text-shadow: 0 0 10px rgba(0,255,200,0.3);
+        }
+
+        .input-group {
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .nickname-input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .nickname-input:focus {
+            border-color: #00ffc8;
+        }
+
+        /* Difficulty Buttons */
+        .diff-btn {
+            flex: 1; 
+            padding: 10px 5px; 
+            font-size: 12px; 
+            font-weight: bold;
+            text-transform: uppercase;
+            background: transparent; 
+            border: 1px solid rgba(255,255,255,0.2); 
+            color: rgba(255,255,255,0.7); 
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .diff-btn:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .diff-btn.active-diff {
+            background: linear-gradient(135deg, #00ffc8, #00b3ff);
+            color: #040406;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,255,200,0.3);
+        }
+
+        .color-config {
+            display: flex;
+            justify-content: space-around;
+            background: rgba(255,255,255,0.03);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .picker-set {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,0.6);
+            text-transform: uppercase;
+        }
+
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 60px;
+            height: 40px;
+            border-radius: 6px;
+            cursor: pointer;
+            background: none;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 6px;
+        }
+
+        button.primary-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #00ffc8, #00b3ff);
+            border: none;
+            padding: 14px 35px;
+            color: #040406;
+            font-weight: bold;
+            letter-spacing: 1px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0,255,200,0.3);
+            font-size: 15px;
+        }
+        button.primary-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,255,200,0.5);
+        }
+
+        .secondary-btn {
+            width: 100%;
+            padding: 14px 35px;
+            border-radius: 6px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: rgba(255,255,255,0.7);
+            box-shadow: none;
+        }
+        .secondary-btn:hover {
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            border-color: rgba(255,255,255,0.4);
+        }
+
+        /* Settings CSS Toggle Switch */
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 5px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            text-align: left;
+        }
+        .setting-row span {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 24px;
+        }
+        .switch input { 
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(255,255,255,0.1);
+            transition: .3s;
+            border-radius: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: #fff;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #00ffc8;
+            border-color: #00ffc8;
+        }
+        input:checked + .slider:before {
+            transform: translateX(22px);
+            background-color: #040406;
+        }
+
+        /* HUD Tracker */
+        .hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 5;
+            color: rgba(255,255,255,0.8);
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            background: rgba(10,10,15,0.6);
+            padding: 10px 18px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.08);
+            pointer-events: none;
+            display: none;
+        }
+
+        /* Top Right Leaderboard */
+        .leaderboard {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 5;
+            color: rgba(255,255,255,0.85);
+            font-family: 'Segoe UI', Arial, sans-serif;
+            font-size: 13px;
+            background: rgba(10, 10, 15, 0.75);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 200, 0.2);
+            width: 220px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            backdrop-filter: blur(6px);
+            pointer-events: none;
+            display: none;
+        }
+        .leaderboard h3 {
+            color: #00ffc8;
+            font-size: 14px;
+            margin-bottom: 8px;
+            text-align: center;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 5px;
+        }
+        .leaderboard-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .leaderboard-item.player-row {
+            color: #00ffc8;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(0, 255, 200, 0.4);
+        }
+        .leaderboard-item .rank {
+            opacity: 0.5;
+            margin-right: 6px;
+            font-weight: normal;
+        }
+        .leaderboard-item .name {
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 120px;
+        }
+        .leaderboard-item .score {
+            font-weight: bold;
+        }
+
+        .hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="hud" id="gameHud">Score: 45 | Width Tier: 1 | Enemies: 5</div>
+    
+    <div class="leaderboard" id="gameLeaderboard">
+        <h3 id="leaderboardTitle">Leaderboard</h3>
+        <ul class="leaderboard-list" id="leaderboardList"></ul>
+    </div>
+
+    <div class="screen-overlay" id="mainMenu">
+        <div class="ui-box">
+            <h1>Snake Arena</h1>
+            
+            <div class="input-group">
+                <label for="nickname">Nickname</label>
+                <input type="text" id="nickname" class="nickname-input" value="Player" maxlength="12">
+            </div>
+
+            <div class="input-group">
+                <label>Arena Mode</label>
+                <div style="display: flex; gap: 10px; margin-top: 2px;">
+                    <button id="modeDefaultBtn" type="button" class="diff-btn active-diff">Default</button>
+                    <button id="modeTronBtn" type="button" class="diff-btn">Tron</button>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>Bot Difficulty</label>
+                <div style="display: flex; gap: 5px; margin-top: 2px;">
+                    <button id="diffEasyBtn" type="button" class="diff-btn" data-diff="EASY">Easy</button>
+                    <button id="diffMedBtn" type="button" class="diff-btn" data-diff="MEDIUM">Med</button>
+                    <button id="diffHardBtn" type="button" class="diff-btn active-diff" data-diff="HARD">Hard</button>
+                    <button id="diffExpBtn" type="button" class="diff-btn" data-diff="EXPERT">Expert</button>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="lanIp">LAN Server IP</label>
+                <input type="text" id="lanIp" class="nickname-input" value="localhost:3000" placeholder="e.g. 192.168.1.50:3000">
+            </div>
+
+            <div class="color-config">
+                <div class="picker-set">
+                    <label>Head Color</label>
+                    <input type="color" id="headColor" value="#00ffc8">
+                </div>
+                <div class="picker-set">
+                    <label>Tail Color</label>
+                    <input type="color" id="tailColor" value="#8000ff">
+                </div>
+            </div>
+            <button id="startBtn" class="primary-btn">Play Solo</button>
+            <button id="lanBtn" class="primary-btn" style="background: linear-gradient(135deg, #00b3ff, #8000ff); box-shadow: 0 4px 15px rgba(0,179,255,0.3);">Connect LAN</button>
+            <button class="secondary-btn settingsOpenBtn">Settings</button>
+        </div>
+    </div>
+
+    <div class="screen-overlay hidden" id="deathScreen">
+        <div class="ui-box" style="border-color: rgba(255, 50, 50, 0.3);">
+            <h1 style="color: #ff3232; text-shadow: 0 0 10px rgba(255,50,50,0.3);">Game Over</h1>
+            <p style="font-size: 16px; color: rgba(255,255,255,0.7); margin-bottom: 10px;" id="deathStats">Final Score: 0</p>
+            <button id="respawnBtn" class="primary-btn" style="background: linear-gradient(135deg, #ff3232, #ff7600); box-shadow: 0 4px 15px rgba(255,50,50,0.3);">Play Again</button>
+            <button id="backToMenuBtn" class="secondary-btn">Main Menu</button>
+            <button class="secondary-btn settingsOpenBtn">Settings</button>
+        </div>
+    </div>
+
+    <div class="screen-overlay hidden" id="settingsMenu">
+        <div class="ui-box">
+            <h1>Configuration</h1>
+            
+            <div class="setting-row">
+                <span>Motion Blur Trail Effect</span>
+                <label class="switch">
+                    <input type="checkbox" id="blurToggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="setting-row">
+                <span>Ultra Optimization (White Bots, No Shadows)</span>
+                <label class="switch">
+                    <input type="checkbox" id="ultraOptToggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <button id="settingsCloseBtn" class="primary-btn" style="margin-top: 15px;">Back</button>
+        </div>
+    </div>
+
+    <canvas id="snakeCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('snakeCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let gameState = 'MENU';
+        let priorSettingsState = 'MENU';
+        let currentGamemode = 'DEFAULT'; 
+        let currentDifficulty = 'HARD';
+
+        // UI Selectors
+        const menuOverlay = document.getElementById('mainMenu');
+        const deathOverlay = document.getElementById('deathScreen');
+        const settingsOverlay = document.getElementById('settingsMenu');
+        const gameHud = document.getElementById('gameHud');
+        const gameLeaderboard = document.getElementById('gameLeaderboard');
+        const leaderboardList = document.getElementById('leaderboardList');
+        const leaderboardTitle = document.getElementById('leaderboardTitle');
+        const deathStats = document.getElementById('deathStats');
+        const blurToggle = document.getElementById('blurToggle');
+        const ultraOptToggle = document.getElementById('ultraOptToggle');
+        const modeDefaultBtn = document.getElementById('modeDefaultBtn');
+        const modeTronBtn = document.getElementById('modeTronBtn');
+        const lanIpInput = document.getElementById('lanIp');
+
+        function resizeCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = window.innerWidth * dpr;
+            canvas.height = window.innerHeight * dpr;
+            canvas.style.width = window.innerWidth + 'px';
+            canvas.style.height = window.innerHeight + 'px';
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const mouse = { x: (window.innerWidth * (window.devicePixelRatio || 1)) / 2, y: (window.innerHeight * (window.devicePixelRatio || 1)) / 2 };
+        window.addEventListener('mousemove', (e) => { 
+            const currentDpr = window.devicePixelRatio || 1;
+            mouse.x = e.clientX * currentDpr; 
+            mouse.y = e.clientY * currentDpr; 
+        });
+
+        const hardwareInput = { boost: false };
+        
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Shift') hardwareInput.boost = true;
+            if (gameState === 'PLAYING' && player && currentGamemode === 'TRON') {
+                const key = e.key.toLowerCase();
+                if ((key === 'w' || key === 'arrowup') && player.currentDirection !== 'DOWN') player.nextDirection = 'UP';
+                if ((key === 's' || key === 'arrowdown') && player.currentDirection !== 'UP') player.nextDirection = 'DOWN';
+                if ((key === 'a' || key === 'arrowleft') && player.currentDirection !== 'RIGHT') player.nextDirection = 'LEFT';
+                if ((key === 'd' || key === 'arrowright') && player.currentDirection !== 'LEFT') player.nextDirection = 'RIGHT';
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'Shift') hardwareInput.boost = false;
+        });
+        window.addEventListener('mousedown', (e) => {
+            if (gameState === 'PLAYING') hardwareInput.boost = true;
+        });
+        window.addEventListener('mouseup', (e) => {
+            hardwareInput.boost = false;
+        });
+
+        const config = {
+            segmentLength: 12,
+            baseRadius: 16,
+            maxNPCs: 14, 
+            hexSize: 45,
+            maxPassiveOrbs: 90,
+            mapWidth: 2500,  
+            mapHeight: 2500, 
+            minSegments: 15,
+            motionBlur: false, 
+            spawnProtectionDuration: 2000,
+            ultraOptimization: false
+        };
+
+        let particles = [];
+        let orbs = [];
+        let snakes = [];
+        let player = null;
+        let lastScoreDrainTime = Date.now();
+        let camera = { x: 0, y: 0 };
+        let logicalScale = 1; 
+
+        let socket = null;
+        let isMultiplayerMode = false;
+        let myNetworkId = null;
+
+        const npcNames = ['Viper', 'Shadow', 'Cobra', 'Titan', 'Ghost', 'Blaze', 'Frost', 'Neon', 'Apex', 'Striker'];
+
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : { r: 0, g: 255, b: 200 };
+        }
+        function randomRGB() {
+            return { r: Math.floor(Math.random()*180+75), g: Math.floor(Math.random()*180+75), b: Math.floor(Math.random()*180+75) };
+        }
+
+        function spawnParticles(x, y, color) {
+            for(let i=0; i<15; i++) {
+                particles.push({
+                    x: x, y: y,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    radius: Math.random() * 3 + 1,
+                    color: color,
+                    alpha: 1
+                });
+            }
+        }
+
+        function dropOrbsFromDeath(snake) {
+            snake.segments.forEach((seg, index) => {
+                if (index % 6 === 0) {
+                    const progress = index / snake.segments.length;
+                    const r = Math.round(snake.startRGB.r + (snake.endRGB.r - snake.startRGB.r) * progress);
+                    const g = Math.round(snake.startRGB.g + (snake.endRGB.g - snake.startRGB.g) * progress);
+                    const b = Math.round(snake.startRGB.b + (snake.endRGB.b - snake.startRGB.b) * progress);
+                    
+                    orbs.push({
+                        x: seg.x + (Math.random() - 0.5) * 20,
+                        y: seg.y + (Math.random() - 0.5) * 20,
+                        radius: Math.random() * 2 + 6, 
+                        color: `rgb(${r}, ${g}, ${b})`,
+                        growthValue: currentGamemode === 'TRON' ? 1 : 3 
+                    });
+                }
+            });
+        }
+
+        function maintainPassiveOrbs() {
+            while (orbs.length < config.maxPassiveOrbs) {
+                orbs.push({
+                    x: Math.random() * config.mapWidth,
+                    y: Math.random() * config.mapHeight,
+                    radius: Math.random() * 2 + 3,
+                    color: currentGamemode === 'TRON' ? `hsl(320, 100%, 65%)` : `hsl(${Math.random() * 360}, 100%, 65%)`,
+                    growthValue: 1
+                });
+            }
+        }
+
+        function drawArenaBoundaries() {
+            ctx.save();
+            ctx.strokeStyle = config.ultraOptimization ? '#ffffff' : (currentGamemode === 'TRON' ? '#ff006e' : '#ff3333');
+            ctx.lineWidth = 8;
+            if (!config.ultraOptimization) {
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = currentGamemode === 'TRON' ? '#ff006e' : '#ff3333';
+            }
+            ctx.strokeRect(0 - camera.x, 0 - camera.y, config.mapWidth, config.mapHeight);
+            ctx.restore();
+        }
+
+        function drawHexGrid() {
+            if (config.ultraOptimization && currentGamemode !== 'TRON') return;
+
+            const time = Date.now() * 0.001;
+            const h = config.hexSize;
+            const rowHeight = h * 1.5;
+            const colWidth = h * Math.sqrt(3);
+
+            ctx.save();
+            ctx.lineWidth = 1;
+
+            let logicCamY = camera.y;
+            let logicCamX = camera.x;
+            let viewportW = canvas.width / logicalScale;
+            let viewportH = canvas.height / logicalScale;
+
+            for (let y = Math.floor(logicCamY / rowHeight) * rowHeight - h; y < logicCamY + viewportH + h; y += rowHeight) {
+                if (y < 0 || y > config.mapHeight) continue;
+                for (let x = Math.floor(logicCamX / colWidth) * colWidth - colWidth; x < logicCamX + viewportW + colWidth; x += colWidth) {
+                    if (x < 0 || x > config.mapWidth) continue;
+                    
+                    if (currentGamemode === 'TRON') {
+                        ctx.strokeStyle = `rgba(255, 0, 110, 0.04)`;
+                        ctx.strokeRect(x - camera.x, y - camera.y, colWidth, rowHeight);
+                    } else {
+                        const noise = Math.sin(x * 0.005 + time) * Math.cos(y * 0.005 + time * 0.8);
+                        const opacity = 0.015 + (noise + 1) * 0.03; 
+                        ctx.strokeStyle = `rgba(0, 255, 200, ${opacity})`;
+                        ctx.beginPath();
+                        for (let i = 0; i < 6; i++) {
+                            const angle = (Math.PI / 3) * i + Math.PI / 6;
+                            const hx = x + h * Math.cos(angle) - camera.x;
+                            const hy = y + h * Math.sin(angle) - camera.y;
+                            if (i === 0) ctx.moveTo(hx, hy);
+                            else ctx.lineTo(hx, hy);
+                        }
+                        ctx.closePath();
+                        ctx.stroke();
+                    }
+                }
+            }
+            ctx.restore();
+        }
+
+        function drawMinimap() {
+            const size = 160;
+            const pad = 20;
+            
+            let logicW = canvas.width / logicalScale;
+            let logicH = canvas.height / logicalScale;
+            
+            const mx = logicW - size - pad;
+            const my = logicH - size - pad;
+
+            ctx.save();
+            ctx.fillStyle = 'rgba(10, 10, 18, 0.8)';
+            ctx.strokeStyle = currentGamemode === 'TRON' ? 'rgba(255, 0, 110, 0.25)' : 'rgba(0, 255, 200, 0.25)';
+            ctx.lineWidth = 2;
+            ctx.fillRect(mx, my, size, size);
+            ctx.strokeRect(mx, my, size, size);
+
+            const scale = size / config.mapWidth;
+
+            snakes.forEach(s => {
+                if (s.segments.length === 0) return;
+                if (s.isProtected() && Math.floor(Date.now() / 150) % 2 === 0) return;
+
+                ctx.fillStyle = s.isPlayer ? (currentGamemode === 'TRON' ? '#ff006e' : '#00ffc8') : '#ff3333';
+                if (config.ultraOptimization && !s.isPlayer) ctx.fillStyle = '#ffffff';
+
+                const dotX = mx + (s.segments[0].x * scale);
+                const dotY = my + (s.segments[0].y * scale);
+                
+                ctx.beginPath();
+                ctx.arc(dotX, dotY, s.isPlayer ? 3.5 : 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.restore();
+        }
+
+        function updateLeaderboard() {
+            if (gameState !== 'PLAYING') {
+                gameLeaderboard.style.display = 'none';
+                return;
+            }
+            gameLeaderboard.style.display = 'block';
+            leaderboardTitle.innerText = currentGamemode === 'TRON' ? 'Top 10 (Tron)' : 'Top 10 (Default)';
+
+            const sorted = [...snakes].sort((a, b) => b.segments.length - a.segments.length);
+            
+            leaderboardList.innerHTML = '';
+            const top10 = sorted.slice(0, 10);
+
+            top10.forEach((snake, idx) => {
+                const li = document.createElement('li');
+                li.className = 'leaderboard-item' + (snake.isPlayer ? ' player-row' : '');
+                
+                const rank = document.createElement('span');
+                rank.className = 'rank';
+                rank.innerText = `${idx + 1}.`;
+
+                const name = document.createElement('span');
+                name.className = 'name';
+                name.innerText = snake.name;
+
+                const score = document.createElement('span');
+                score.className = 'score';
+                score.innerText = snake.segments.length;
+
+                li.appendChild(rank);
+                li.appendChild(name);
+                li.appendChild(score);
+                leaderboardList.appendChild(li);
+            });
+        }
+
+        class Snake {
+            constructor(x, y, isPlayer = false, name = "Bot") {
+                this.isPlayer = isPlayer;
+                this.name = name;
+                this.totalSegments = currentGamemode === 'TRON' ? 60 : 45;
+                this.segments = [];
+                this.baseRadius = config.baseRadius;
+                this.isBoosting = false; 
+                this.actuallyBoosting = false; 
+                this.lastBoostDrainTime = Date.now();
+                this.virtualCursor = { x: x, y: y };
+                this.wanderTarget = { x: Math.random() * (config.mapWidth - 400) + 200, y: Math.random() * (config.mapHeight - 400) + 200 };
+                this.startRGB = randomRGB();
+                this.endRGB = randomRGB();
+                this.spawnTime = Date.now();
+                this.isNetworkRemote = false; 
+                this.networkId = null;
+
+                this.currentDirection = 'RIGHT'; 
+                this.nextDirection = 'RIGHT';
+                let initialAngle = 0;
+
+                for (let i = 0; i < this.totalSegments; i++) {
+                    this.segments.push({ x: x - (i * (currentGamemode === 'TRON' ? 4 : config.segmentLength)), y: y, angle: initialAngle });
+                }
+            }
+
+            isProtected() {
+                return (Date.now() - this.spawnTime) < config.spawnProtectionDuration;
+            }
+
+            updateAI(allSnakes) {
+                if (this.isPlayer || this.isNetworkRemote) return;
+
+                if (currentGamemode === 'TRON') {
+                    this.updateTronAI(allSnakes);
+                    return;
+                }
+
+                let head = this.segments[0];
+                let steerX = this.wanderTarget.x;
+                let steerY = this.wanderTarget.y;
+                this.isBoosting = false; 
+
+                const safetyZone = 160;
+                if (head.x < safetyZone || head.x > config.mapWidth - safetyZone || head.y < safetyZone || head.y > config.mapHeight - safetyZone) {
+                    this.virtualCursor.x = config.mapWidth / 2;
+                    this.virtualCursor.y = config.mapHeight / 2;
+                    this.isBoosting = currentDifficulty !== 'EASY'; 
+                    return;
+                }
+
+                let targetSnake = null;
+                let closestDist = 1500; 
+                
+                let maxAggroDist = 650;
+                let evasionDist = 110;
+                if (currentDifficulty === 'EASY') maxAggroDist = 0;
+                else if (currentDifficulty === 'MEDIUM') maxAggroDist = 200;
+                else if (currentDifficulty === 'EXPERT') { maxAggroDist = 1000; evasionDist = 150; }
+
+                allSnakes.forEach(s => {
+                    if (s !== this && s.segments.length > 0 && !this.isProtected() && !s.isProtected()) {
+                        let d = Math.hypot(head.x - s.segments[0].x, head.y - s.segments[0].y);
+                        
+                        if (d < closestDist && d < maxAggroDist) {
+                            closestDist = d;
+                            targetSnake = s;
+                        }
+                    }
+                });
+
+                if (targetSnake) {
+                    let targetHead = targetSnake.segments[0];
+                    let leadingFactor = closestDist * (currentDifficulty === 'EXPERT' ? 0.6 : 0.35); 
+                    steerX = targetHead.x + Math.cos(targetHead.angle) * leadingFactor;
+                    steerY = targetHead.y + Math.sin(targetHead.angle) * leadingFactor;
+                    if (closestDist < 250 && currentDifficulty !== 'EASY') this.isBoosting = true; 
+                } else {
+                    let closestOrb = null;
+                    let closestOrbDist = 350;
+                    orbs.forEach(o => {
+                        let d = Math.hypot(head.x - o.x, head.y - o.y);
+                        if (d < closestOrbDist) {
+                            closestOrbDist = d;
+                            closestOrb = o;
+                        }
+                    });
+
+                    if (closestOrb) {
+                        steerX = closestOrb.x;
+                        steerY = closestOrb.y;
+                    } else {
+                        if (Math.hypot(this.wanderTarget.x - head.x, this.wanderTarget.y - head.y) < 100) {
+                            this.wanderTarget = { x: Math.random() * config.mapWidth, y: Math.random() * config.mapHeight };
+                        }
+                        steerX = this.wanderTarget.x;
+                        steerY = this.wanderTarget.y;
+                    }
+                }
+
+                if (currentDifficulty !== 'EASY') {
+                    allSnakes.forEach(s => {
+                        if (s === this || s.isProtected() || this.isProtected()) return; 
+                        if (s.segments.length > 0) {
+                            let headDist = Math.hypot(head.x - s.segments[0].x, head.y - s.segments[0].y);
+                            let approxLength = s.segments.length * config.segmentLength;
+                            if (headDist > approxLength + 400) return; 
+
+                            for (let i = 0; i < s.segments.length; i += 6) {
+                                let bodySeg = s.segments[i];
+                                let d = Math.hypot(head.x - bodySeg.x, head.y - bodySeg.y);
+                                
+                                if (d < evasionDist) {
+                                    let escapeAngle = Math.atan2(head.y - bodySeg.y, head.x - bodySeg.x) + Math.PI / 2;
+                                    steerX = head.x + Math.cos(escapeAngle) * 300;
+                                    steerY = head.y + Math.sin(escapeAngle) * 300;
+                                    this.isBoosting = true; 
+                                    break;
+                                }
+                            }
+                        }
+                    });
+                }
+
+                this.virtualCursor.x = steerX;
+                this.virtualCursor.y = steerY;
+            }
+
+            updateTronAI(allSnakes) {
+                let head = this.segments[0];
+                let currentAngle = head.angle;
+
+                let options = [
+                    currentAngle,                  
+                    currentAngle - Math.PI / 2,     
+                    currentAngle + Math.PI / 2      
+                ];
+                options = options.map(a => Math.atan2(Math.sin(a), Math.cos(a)));
+
+                let targetX = config.mapWidth / 2;
+                let targetY = config.mapHeight / 2;
+                let closestOrb = null;
+                let closestOrbDist = Infinity;
+
+                orbs.forEach(o => {
+                    let d = Math.hypot(head.x - o.x, head.y - o.y);
+                    if (d < closestOrbDist) {
+                        closestOrbDist = d;
+                        closestOrb = o;
+                    }
+                });
+                if (closestOrb) {
+                    targetX = closestOrb.x;
+                    targetY = closestOrb.y;
+                }
+
+                let angleToTarget = Math.atan2(targetY - head.y, targetX - head.x);
+                let snappedTargetAngle = 0;
+                if (angleToTarget > -Math.PI/4 && angleToTarget <= Math.PI/4) snappedTargetAngle = 0;
+                else if (angleToTarget > Math.PI/4 && angleToTarget <= 3*Math.PI/4) snappedTargetAngle = Math.PI/2;
+                else if (angleToTarget > 3*Math.PI/4 || angleToTarget <= -3*Math.PI/4) snappedTargetAngle = Math.PI;
+                else snappedTargetAngle = -Math.PI/2;
+
+                let bestDir = currentAngle;
+                let maxSafeSteps = -1;
+                let safeOptions = [];
+
+                let stepStride = 16; 
+                let maxLookAheadDist = 240; 
+                if (currentDifficulty === 'EASY') maxLookAheadDist = 80;
+                else if (currentDifficulty === 'MEDIUM') maxLookAheadDist = 160;
+                else if (currentDifficulty === 'EXPERT') maxLookAheadDist = 450;
+
+                for (let dir of options) {
+                    let safeSteps = 0;
+                    let hitSomething = false;
+
+                    for (let distCheck = stepStride; distCheck <= maxLookAheadDist; distCheck += stepStride) {
+                        let checkX = head.x + Math.cos(dir) * distCheck;
+                        let checkY = head.y + Math.sin(dir) * distCheck;
+
+                        if (checkX < 45 || checkX > config.mapWidth - 45 || checkY < 45 || checkY > config.mapHeight - 45) {
+                            hitSomething = true;
+                            break;
+                        }
+
+                        for (let s of allSnakes) {
+                            if (s.segments.length === 0 || s.isProtected()) continue;
+                            for (let idx = 0; idx < s.segments.length; idx += 4) {
+                                if (s === this && idx < 12) continue;
+                                let seg = s.segments[idx];
+                                let dist = Math.hypot(checkX - seg.x, checkY - seg.y);
+                                if (dist < (this.baseRadius * 0.8 + s.baseRadius * 0.8)) {
+                                    hitSomething = true;
+                                    break;
+                                }
+                            }
+                            if (hitSomething) break;
+                        }
+
+                        if (hitSomething) break;
+                        safeSteps++;
+                    }
+
+                    if (!hitSomething) {
+                        safeOptions.push({ dir, steps: safeSteps, preferred: (dir === snappedTargetAngle) });
+                    } else {
+                        if (safeSteps > maxSafeSteps) {
+                            maxSafeSteps = safeSteps;
+                            bestDir = dir; 
+                        }
+                    }
+                }
+
+                if (safeOptions.length > 0) {
+                    let prefOpt = safeOptions.find(o => o.preferred);
+                    let straightOpt = safeOptions.find(o => Math.abs(Math.atan2(Math.sin(o.dir - currentAngle), Math.cos(o.dir - currentAngle))) < 0.1);
+
+                    let randomChance = 0.12;
+                    if (currentDifficulty === 'EASY') randomChance = 0.5;
+                    else if (currentDifficulty === 'EXPERT') randomChance = 0.05;
+
+                    if (prefOpt && Math.random() < randomChance) {
+                        bestDir = prefOpt.dir;
+                    } else if (straightOpt) {
+                        bestDir = straightOpt.dir; 
+                    } else {
+                        safeOptions.sort((a, b) => b.steps - a.steps);
+                        bestDir = safeOptions[0].dir;
+                    }
+                }
+
+                this.virtualCursor.x = head.x + Math.cos(bestDir) * 100;
+                this.virtualCursor.y = head.y + Math.sin(bestDir) * 100;
+            }
+
+            move(targetX, targetY) {
+                if(this.segments.length === 0 || this.isNetworkRemote) return;
+                const head = this.segments[0];
+                
+                let extraTiers = 0;
+                if (this.segments.length >= 100) {
+                    extraTiers = 1 + Math.floor((this.segments.length - 100) / 50);
+                }
+                this.baseRadius = config.baseRadius + (extraTiers * 4); 
+
+                let calculatedSpeed = (currentGamemode === 'TRON' ? 4.5 : 3.5) + (this.segments.length * 0.01);
+                
+                // Difficulty Speed Scaling for Bots
+                if (!this.isPlayer) {
+                    if (currentDifficulty === 'EASY') calculatedSpeed *= 0.6;
+                    else if (currentDifficulty === 'MEDIUM') calculatedSpeed *= 0.85;
+                    else if (currentDifficulty === 'EXPERT') calculatedSpeed *= 1.25;
+                }
+
+                this.actuallyBoosting = this.isBoosting && (this.segments.length > config.minSegments);
+
+                if (this.actuallyBoosting) {
+                    calculatedSpeed += (currentDifficulty === 'EXPERT' && !this.isPlayer) ? 4.0 : 3.0; 
+                    if (Date.now() - this.lastBoostDrainTime > 200) {
+                        const droppedSegment = this.segments.pop(); 
+                        this.totalSegments = this.segments.length;
+
+                        if (Math.random() > 0.4) {
+                            orbs.push({
+                                x: droppedSegment.x + (Math.random() - 0.5) * 10,
+                                y: droppedSegment.y + (Math.random() - 0.5) * 10,
+                                radius: 3.5,
+                                color: `rgb(${this.startRGB.r}, ${this.startRGB.g}, ${this.startRGB.b})`,
+                                growthValue: 1
+                            });
+                        }
+                        this.lastBoostDrainTime = Date.now();
+                    }
+                }
+
+                if (currentGamemode === 'TRON') {
+                    if (this.isPlayer) {
+                        if (this.nextDirection) {
+                            this.currentDirection = this.nextDirection;
+                        }
+                        if (this.currentDirection === 'UP') head.angle = -Math.PI / 2;
+                        if (this.currentDirection === 'DOWN') head.angle = Math.PI / 2;
+                        if (this.currentDirection === 'LEFT') head.angle = Math.PI;
+                        if (this.currentDirection === 'RIGHT') head.angle = 0;
+                    } else {
+                        let requestedAngle = Math.atan2(targetY - head.y, targetX - head.x);
+                        let snappedAngle = 0;
+                        if (requestedAngle > -Math.PI/4 && requestedAngle <= Math.PI/4) snappedAngle = 0; 
+                        else if (requestedAngle > Math.PI/4 && requestedAngle <= 3*Math.PI/4) snappedAngle = Math.PI/2; 
+                        else if (requestedAngle > 3*Math.PI/4 || requestedAngle <= -3*Math.PI/4) snappedAngle = Math.PI; 
+                        else snappedAngle = -Math.PI/2; 
+
+                        let headingDifference = Math.abs(Math.atan2(Math.sin(snappedAngle - head.angle), Math.cos(snappedAngle - head.angle)));
+                        if (Math.abs(headingDifference - Math.PI) > 0.1) {
+                            head.angle = snappedAngle;
+                        }
+                    }
+
+                    let oldX = head.x;
+                    let oldY = head.y;
+                    let oldAngle = head.angle;
+
+                    head.x += Math.cos(head.angle) * calculatedSpeed;
+                    head.y += Math.sin(head.angle) * calculatedSpeed;
+
+                    for (let i = this.segments.length - 1; i > 0; i--) {
+                        this.segments[i].x = this.segments[i - 1].x;
+                        this.segments[i].y = this.segments[i - 1].y;
+                        this.segments[i].angle = this.segments[i - 1].angle;
+                    }
+                    if (this.segments.length > 1) {
+                        this.segments[1].x = oldX;
+                        this.segments[1].y = oldY;
+                        this.segments[1].angle = oldAngle;
+                    }
+
+                } else {
+                    let targetAngle = Math.atan2(targetY - head.y, targetX - head.x);
+                    if (!this.isPlayer) {
+                        let angleDiff = targetAngle - head.angle;
+                        angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff)); 
+                        
+                        let maxTurnRate = 0.14; 
+                        if (currentDifficulty === 'EASY') maxTurnRate = 0.08;
+                        else if (currentDifficulty === 'EXPERT') maxTurnRate = 0.20;
+
+                        if (Math.abs(angleDiff) > maxTurnRate) {
+                            targetAngle = head.angle + Math.sign(angleDiff) * maxTurnRate;
+                        }
+                    }
+                    head.angle = targetAngle;
+
+                    head.x += Math.cos(head.angle) * calculatedSpeed;
+                    head.y += Math.sin(head.angle) * calculatedSpeed;
+
+                    for (let i = 1; i < this.segments.length; i++) {
+                        const prev = this.segments[i - 1];
+                        const curr = this.segments[i];
+                        const dx = prev.x - curr.x;
+                        const dy = prev.y - curr.y;
+                        const distance = Math.hypot(dx, dy);
+
+                        curr.angle = Math.atan2(dy, dx);
+                        if (distance > config.segmentLength) {
+                            curr.x = prev.x - Math.cos(curr.angle) * config.segmentLength;
+                            curr.y = prev.y - Math.sin(curr.angle) * config.segmentLength;
+                        }
+                    }
+                }
+            }
+
+            draw() {
+                let isVisible = true;
+                if (this.isProtected()) {
+                    isVisible = Math.floor(Date.now() / 150) % 2 === 0;
+                }
+
+                ctx.save();
+                if (this.isProtected()) {
+                    ctx.globalAlpha = isVisible ? 0.6 : 0.15;
+                }
+
+                if (currentGamemode === 'TRON') {
+                    if (this.segments.length > 1) {
+                        ctx.save();
+                        ctx.lineCap = 'square';
+                        ctx.lineJoin = 'miter';
+                        ctx.lineWidth = this.baseRadius * 1.3;
+                        
+                        ctx.shadowBlur = this.actuallyBoosting ? 25 : 12; 
+                        ctx.shadowColor = `rgb(${this.startRGB.r}, ${this.startRGB.g}, ${this.startRGB.b})`;
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(this.segments[0].x - camera.x, this.segments[0].y - camera.y);
+                        for (let i = 1; i < this.segments.length; i++) {
+                            ctx.lineTo(this.segments[i].x - camera.x, this.segments[i].y - camera.y);
+                        }
+                        
+                        ctx.strokeStyle = `rgb(${this.startRGB.r}, ${this.startRGB.g}, ${this.startRGB.b})`;
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+
+                    let head = this.segments[0];
+                    ctx.save();
+                    ctx.translate(head.x - camera.x, head.y - camera.y);
+                    ctx.rotate(head.angle);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = '#ffffff';
+                    ctx.fillRect(-this.baseRadius, -this.baseRadius, this.baseRadius * 2, this.baseRadius * 2);
+                    ctx.restore();
+
+                    ctx.save();
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                    ctx.font = 'bold 11px Arial, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.shadowColor = 'black';
+                    ctx.shadowBlur = 4;
+                    ctx.fillText(this.name + (this.actuallyBoosting ? " ⚡" : ""), head.x - camera.x, head.y - camera.y - this.baseRadius - 12);
+                    ctx.restore();
+
+                } else {
+                    const isWhiteOut = config.ultraOptimization && !this.isPlayer;
+
+                    for (let i = this.segments.length - 1; i >= 0; i--) {
+                        const seg = this.segments[i];
+                        const progress = i / this.segments.length;
+                        const radius = this.baseRadius * (1 - progress * 0.72);
+
+                        let colorStr;
+                        if (isWhiteOut) {
+                            colorStr = '#ffffff';
+                        } else {
+                            const r = Math.round(this.startRGB.r + (this.endRGB.r - this.startRGB.r) * progress);
+                            const g = Math.round(this.startRGB.g + (this.endRGB.g - this.startRGB.g) * progress);
+                            const b = Math.round(this.startRGB.b + (this.endRGB.b - this.startRGB.b) * progress);
+                            colorStr = `rgb(${r}, ${g}, ${b})`;
+                        }
+
+                        ctx.save();
+                        ctx.translate(seg.x - camera.x, seg.y - camera.y);
+                        ctx.rotate(seg.angle);
+
+                        if (i === 0 && !config.ultraOptimization) {
+                            ctx.shadowBlur = this.actuallyBoosting ? 25 : 15; 
+                            ctx.shadowColor = this.isProtected() ? '#00ffc8' : colorStr;
+                        }
+
+                        ctx.fillStyle = colorStr;
+                        ctx.beginPath();
+                        ctx.ellipse(0, 0, radius, radius * 0.8, 0, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        if (i === 0) {
+                            if (!config.ultraOptimization) ctx.shadowBlur = 5;
+                            ctx.fillStyle = (this.isPlayer) ? '#ffffff' : (isWhiteOut ? '#dddddd' : '#ff3333');
+                            if (this.actuallyBoosting) ctx.fillStyle = '#ffea00'; 
+                            
+                            ctx.beginPath(); ctx.arc(radius * 0.4, -radius * 0.4, 3, 0, Math.PI * 2); ctx.fill();
+                            ctx.beginPath(); ctx.arc(radius * 0.4, radius * 0.4, 3, 0, Math.PI * 2); ctx.fill();
+                        }
+                        ctx.restore();
+
+                        if (i === 0) {
+                            ctx.save();
+                            ctx.fillStyle = this.actuallyBoosting ? '#ffea00' : (isWhiteOut ? '#dddddd' : 'rgba(255, 255, 255, 0.85)');
+                            ctx.font = 'bold 12px Arial, sans-serif';
+                            ctx.textAlign = 'center';
+                            if (!config.ultraOptimization) {
+                                ctx.shadowColor = 'black';
+                                ctx.shadowBlur = 4;
+                            }
+                            
+                            let nameTag = this.name;
+                            if (this.actuallyBoosting) nameTag += " ⚡";
+                            ctx.fillText(nameTag, seg.x - camera.x, seg.y - camera.y - radius - 12);
+                            ctx.restore();
+                        }
+                    }
+                }
+                ctx.restore();
+            }
+        }
+
+        function setupLANConnection(ipString) {
+            try {
+                socket = new WebSocket(`ws://${ipString}`);
+                
+                socket.onopen = () => {
+                    isMultiplayerMode = true;
+                    menuOverlay.classList.add('hidden');
+                    gameHud.style.display = 'block';
+                    initGame();
+                    gameState = 'PLAYING';
+                    
+                    socket.send(JSON.stringify({
+                        type: 'join',
+                        name: player.name,
+                        startRGB: player.startRGB,
+                        endRGB: player.endRGB
+                    }));
+                };
+
+                socket.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.type === 'init') {
+                        myNetworkId = data.id;
+                    }
+
+                    if (data.type === 'update') {
+                        snakes = snakes.filter(s => !s.isNetworkRemote || data.players[s.networkId]);
+                        
+                        for (let id in data.players) {
+                            if (id === myNetworkId) continue;
+                            let netData = data.players[id];
+                            let remoteSnake = snakes.find(s => s.networkId === id);
+                            
+                            if (!remoteSnake) {
+                                remoteSnake = new Snake(0, 0, false, netData.name);
+                                remoteSnake.isNetworkRemote = true;
+                                remoteSnake.networkId = id;
+                                remoteSnake.startRGB = netData.startRGB;
+                                remoteSnake.endRGB = netData.endRGB;
+                                snakes.push(remoteSnake);
+                            }
+                            
+                            remoteSnake.segments = netData.segments;
+                            remoteSnake.baseRadius = netData.baseRadius;
+                            remoteSnake.spawnTime = netData.spawnTime;
+                            remoteSnake.actuallyBoosting = netData.actuallyBoosting;
+                        }
+                    }
+
+                    if (data.type === 'spawnDeathOrbs') {
+                        data.segments.forEach((seg, index) => {
+                            if (index % 6 === 0) {
+                                const progress = index / data.segments.length;
+                                const r = Math.round(data.startRGB.r + (data.endRGB.r - data.startRGB.r) * progress);
+                                const g = Math.round(data.startRGB.g + (data.endRGB.g - data.startRGB.g) * progress);
+                                const b = Math.round(data.startRGB.b + (data.endRGB.b - data.startRGB.b) * progress);
+                                orbs.push({
+                                    x: seg.x + (Math.random() - 0.5) * 20,
+                                    y: seg.y + (Math.random() - 0.5) * 20,
+                                    radius: Math.random() * 2 + 6, 
+                                    color: currentGamemode === 'TRON' ? '#ff006e' : `rgb(${r}, ${g}, ${b})`,
+                                    growthValue: currentGamemode === 'TRON' ? 1 : 3 
+                                });
+                            }
+                        });
+                    }
+                };
+
+                socket.onclose = () => {
+                    alert("Disconnected from LAN server.");
+                    location.reload();
+                };
+                
+                socket.onerror = () => {
+                    alert("Could not establish a connection to the targeted LAN server.");
+                };
+
+            } catch (e) {
+                alert("Invalid address format target.");
+            }
+        }
+
+        function initGame() {
+            snakes = [];
+            particles = [];
+            orbs = []; 
+            
+            const playerNick = document.getElementById('nickname').value.trim() || 'Player';
+            player = new Snake(config.mapWidth / 2, config.mapHeight / 2, true, playerNick);
+            player.startRGB = hexToRgb(document.getElementById('headColor').value);
+            player.endRGB = hexToRgb(document.getElementById('tailColor').value);
+            
+            player.currentDirection = 'RIGHT';
+            player.nextDirection = 'RIGHT';
+            snakes.push(player);
+
+            if (!isMultiplayerMode) {
+                for (let i = 0; i < config.maxNPCs; i++) {
+                    spawnNPC();
+                }
+            }
+            lastScoreDrainTime = Date.now();
+            hardwareInput.boost = false; 
+        }
+
+        function spawnNPC() {
+            let x = Math.random() * (config.mapWidth - 400) + 200;
+            let y = Math.random() * (config.mapHeight - 400) + 200;
+            if (player && Math.hypot(x - player.segments[0].x, y - player.segments[0].y) < 300) {
+                x = (x + 500) % (config.mapWidth - 400) + 200;
+            }
+            const randomName = npcNames[Math.floor(Math.random() * npcNames.length)] + " [" + Math.floor(Math.random()*900+100) + "]";
+            snakes.push(new Snake(x, y, false, randomName));
+        }
+
+        function handleCombat() {
+            let deadSnakes = new Set();
+
+            for (let a = 0; a < snakes.length; a++) {
+                let currentSnake = snakes[a];
+                if (currentSnake.segments.length === 0 || currentSnake.isNetworkRemote) continue; 
+                
+                if (currentSnake.isProtected()) continue;
+
+                let head = currentSnake.segments[0];
+
+                if (head.x < 0 || head.x > config.mapWidth || head.y < 0 || head.y > config.mapHeight) {
+                    deadSnakes.add(currentSnake);
+                    currentSnake.segments.forEach(seg => {
+                        let colorStr = `rgb(${currentSnake.startRGB.r}, ${currentSnake.startRGB.g}, ${currentSnake.startRGB.b})`;
+                        spawnParticles(seg.x, seg.y, colorStr);
+                    });
+                    dropOrbsFromDeath(currentSnake);
+                    continue;
+                }
+
+                for (let v = 0; v < snakes.length; v++) {
+                    let targetSnake = snakes[v];
+                    if (targetSnake.segments.length === 0 || targetSnake.isProtected()) continue;
+
+                    let checkStride = currentGamemode === 'TRON' ? 1 : 2;
+
+                    for (let s = 0; s < targetSnake.segments.length; s += checkStride) {
+                        if (currentGamemode === 'TRON') {
+                            if (currentSnake === targetSnake && s <= 15) continue; 
+                        } else {
+                            if (currentSnake === targetSnake) continue;
+                        }
+
+                        let bodySeg = targetSnake.segments[s];
+                        let dist = Math.hypot(head.x - bodySeg.x, head.y - bodySeg.y);
+                        
+                        let segmentRadius = currentGamemode === 'TRON' ? targetSnake.baseRadius : targetSnake.baseRadius * (1 - (s / targetSnake.segments.length) * 0.72);
+                        let collisionThreshold = currentGamemode === 'TRON' ? (currentSnake.baseRadius * 0.8 + segmentRadius * 0.8) : (currentSnake.baseRadius * 0.6 + segmentRadius * 0.6);
+
+                        if (dist < collisionThreshold) {
+                            deadSnakes.add(currentSnake);
+                            currentSnake.segments.forEach(seg => {
+                                let colorStr = `rgb(${currentSnake.startRGB.r}, ${currentSnake.startRGB.g}, ${currentSnake.startRGB.b})`;
+                                if(Math.random() > 0.5) spawnParticles(seg.x, seg.y, colorStr);
+                            });
+                            dropOrbsFromDeath(currentSnake);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            deadSnakes.forEach(deadSnake => {
+                if (deadSnake.isPlayer) {
+                    if (isMultiplayerMode && socket && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({
+                            type: 'death',
+                            segments: player.segments,
+                            startRGB: player.startRGB,
+                            endRGB: player.endRGB
+                        }));
+                    }
+
+                    gameState = 'GAMEOVER';
+                    deathStats.innerText = `Final Score: ${deadSnake.segments.length}`;
+                    gameHud.style.display = 'none';
+                    gameLeaderboard.style.display = 'none';
+                    deathOverlay.classList.remove('hidden');
+                } else {
+                    let index = snakes.indexOf(deadSnake);
+                    if (index !== -1) {
+                        snakes.splice(index, 1);
+                        setTimeout(spawnNPC, 1200); 
+                    }
+                }
+            });
+        }
+
+        function handleOrbs() {
+            maintainPassiveOrbs();
+
+            for (let i = orbs.length - 1; i >= 0; i--) {
+                let orb = orbs[i];
+                let orbColor = config.ultraOptimization ? '#ffffff' : orb.color;
+
+                ctx.save();
+                if (!config.ultraOptimization) {
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = orb.color;
+                }
+                ctx.fillStyle = orbColor;
+                ctx.beginPath();
+                ctx.arc(orb.x - camera.x, orb.y - camera.y, orb.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                if (gameState === 'PLAYING') {
+                    for (let s = 0; s < snakes.length; s++) {
+                        let snake = snakes[s];
+                        if (snake.segments.length === 0 || snake.isNetworkRemote) continue; 
+
+                        let head = snake.segments[0];
+                        let dist = Math.hypot(head.x - orb.x, head.y - orb.y);
+
+                        if (dist < snake.baseRadius + orb.radius) {
+                            for (let g = 0; g < orb.growthValue; g++) {
+                                let lastSeg = snake.segments[snake.segments.length - 1];
+                                snake.segments.push({ x: lastSeg.x, y: lastSeg.y, angle: lastSeg.angle });
+                            }
+                            snake.totalSegments = snake.segments.length;
+                            orbs.splice(i, 1);
+                            break; 
+                        }
+                    }
+                }
+            }
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx; p.y += p.vy; p.alpha -= 0.02;
+                if (p.alpha <= 0) { particles.splice(i, 1); } 
+                else {
+                    ctx.save();
+                    ctx.globalAlpha = p.alpha;
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath(); ctx.arc(p.x - camera.x, p.y - camera.y, p.radius, 0, Math.PI * 2); ctx.fill();
+                    ctx.restore();
+                }
+            }
+        }
+
+        function handlePassiveScoreDrain() {
+            if (currentGamemode === 'TRON') return; 
+
+            if (Date.now() - lastScoreDrainTime >= 1000) {
+                snakes.forEach(snake => {
+                    if (snake.isNetworkRemote) return;
+                    if (!snake.actuallyBoosting && snake.segments.length > config.minSegments) {
+                        snake.segments.pop();
+                        snake.totalSegments = snake.segments.length;
+                    }
+                });
+                lastScoreDrainTime = Date.now();
+            }
+        }
+
+        function animate() {
+            if (config.motionBlur) {
+                ctx.fillStyle = currentGamemode === 'TRON' ? 'rgba(4, 4, 10, 0.35)' : 'rgba(4, 4, 6, 0.25)'; 
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = '#040406'; 
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // CHANGED FOV SETTINGS TO ZOOM IN
+            let dynamicFOV = 1000; // Base FOV lowered to 1000
+            if (player && player.segments.length > 50) {
+                dynamicFOV += (player.segments.length - 50) * 1.2; 
+                dynamicFOV = Math.min(dynamicFOV, 2500); 
+            }
+            
+            const currentDpr = window.devicePixelRatio || 1;
+            logicalScale = (canvas.height / currentDpr) / dynamicFOV;
+            
+            let logicWidth = canvas.width / (logicalScale * currentDpr);
+            let logicHeight = canvas.height / (logicalScale * currentDpr);
+
+            if (gameState === 'PLAYING' && player && player.segments.length > 0) {
+                camera.x = player.segments[0].x - logicWidth / 2;
+                camera.y = player.segments[0].y - logicHeight / 2;
+            } else {
+                camera.x = config.mapWidth / 2 - logicWidth / 2;
+                camera.y = config.mapHeight / 2 - logicHeight / 2;
+            }
+
+            ctx.save();
+            ctx.scale(logicalScale * currentDpr, logicalScale * currentDpr); 
+
+            drawHexGrid();
+            drawArenaBoundaries();
+            handleOrbs(); 
+            updateParticles();
+
+            if (gameState === 'PLAYING') {
+                handlePassiveScoreDrain();
+                handleCombat();
+                
+                if (player) {
+                    player.isBoosting = hardwareInput.boost;
+                }
+
+                if (isMultiplayerMode && socket && socket.readyState === WebSocket.OPEN && player) {
+                    socket.send(JSON.stringify({
+                        type: 'sync',
+                        segments: player.segments,
+                        baseRadius: player.baseRadius,
+                        spawnTime: player.spawnTime,
+                        actuallyBoosting: player.actuallyBoosting
+                    }));
+                }
+
+                snakes.forEach(snake => {
+                    if (snake.isPlayer) {
+                        if (currentGamemode === 'TRON') {
+                            snake.move(); 
+                        } else {
+                            let mappedTargetX = snake.segments[0].x + (mouse.x / (logicalScale * currentDpr) - logicWidth / 2);
+                            let mappedTargetY = snake.segments[0].y + (mouse.y / (logicalScale * currentDpr) - logicHeight / 2);
+                            snake.move(mappedTargetX, mappedTargetY);
+                        }
+                    } else if (!snake.isNetworkRemote) {
+                        snake.updateAI(snakes);
+                        snake.move(snake.virtualCursor.x, snake.virtualCursor.y);
+                    }
+                    snake.draw();
+                });
+
+                let widthTier = 1;
+                if (player.segments.length >= 100) {
+                    widthTier = 2 + Math.floor((player.segments.length - 100) / 50);
+                }
+                
+                gameHud.innerText = `${currentGamemode === 'TRON' ? 'Tron Grid' : 'Score'}: ${player.segments.length} | Width Tier: ${widthTier} | Arena Players: ${snakes.length}`;
+                
+                ctx.restore(); 
+                drawMinimap(); 
+                updateLeaderboard();
+            } else {
+                snakes.forEach(snake => {
+                    if (!snake.isPlayer && !snake.isNetworkRemote) {
+                        snake.updateAI(snakes);
+                        snake.move(snake.virtualCursor.x, snake.virtualCursor.y);
+                        snake.draw();
+                    }
+                });
+                ctx.restore();
+                gameLeaderboard.style.display = 'none';
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // ==========================================
+        // UI CODE & MODE SWITCH INTERFACES
+        // ==========================================
+
+        // DIFFICULTY BUTTONS LOGIC
+        const diffBtns = [
+            document.getElementById('diffEasyBtn'),
+            document.getElementById('diffMedBtn'),
+            document.getElementById('diffHardBtn'),
+            document.getElementById('diffExpBtn')
+        ];
+        
+        diffBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                diffBtns.forEach(b => b.classList.remove('active-diff'));
+                e.target.classList.add('active-diff');
+                currentDifficulty = e.target.getAttribute('data-diff');
+            });
+        });
+
+        // GAMEMODE BUTTON LOGIC
+        modeDefaultBtn.addEventListener('click', () => {
+            currentGamemode = 'DEFAULT';
+            modeDefaultBtn.classList.add('active-diff');
+            modeTronBtn.classList.remove('active-diff');
+            lanIpInput.value = "localhost:3000";
+        });
+
+        modeTronBtn.addEventListener('click', () => {
+            currentGamemode = 'TRON';
+            modeTronBtn.classList.add('active-diff');
+            modeDefaultBtn.classList.remove('active-diff');
+            lanIpInput.value = "localhost:3001";
+        });
+
+        document.getElementById('startBtn').addEventListener('click', () => {
+            isMultiplayerMode = false;
+            menuOverlay.classList.add('hidden');
+            gameHud.style.display = 'block';
+            initGame();
+            gameState = 'PLAYING';
+        });
+
+        document.getElementById('lanBtn').addEventListener('click', () => {
+            const targetIp = document.getElementById('lanIp').value.trim();
+            if(!targetIp) {
+                alert("Please provide a valid LAN IP address configuration targeting your running server instance.");
+                return;
+            }
+            setupLANConnection(targetIp);
+        });
+
+        document.getElementById('respawnBtn').addEventListener('click', () => {
+            deathOverlay.classList.add('hidden');
+            gameHud.style.display = 'block';
+            initGame();
+            gameState = 'PLAYING';
+            if (isMultiplayerMode && socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    type: 'join',
+                    name: player.name,
+                    startRGB: player.startRGB,
+                    endRGB: player.endRGB
+                }));
+            }
+        });
+
+        document.getElementById('backToMenuBtn').addEventListener('click', () => {
+            deathOverlay.classList.add('hidden');
+            menuOverlay.classList.remove('hidden');
+            gameHud.style.display = 'none';
+            gameLeaderboard.style.display = 'none';
+            gameState = 'MENU';
+            isMultiplayerMode = false;
+            if (socket) {
+                socket.close();
+                socket = null;
+            }
+            
+            snakes = [];
+            orbs = [];
+            particles = [];
+            for(let i=0; i<config.maxNPCs; i++) {
+                const randomName = npcNames[Math.floor(Math.random() * npcNames.length)] + " [" + Math.floor(Math.random()*900+100) + "]";
+                snakes.push(new Snake(Math.random()*config.mapWidth, Math.random()*config.mapHeight, false, randomName));
+            }
+        });
+
+        blurToggle.addEventListener('change', (e) => {
+            config.motionBlur = e.target.checked;
+        });
+
+        ultraOptToggle.addEventListener('change', (e) => {
+            config.ultraOptimization = e.target.checked;
+        });
+
+        document.querySelectorAll('.settingsOpenBtn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                priorSettingsState = gameState; 
+                menuOverlay.classList.add('hidden');
+                deathOverlay.classList.add('hidden');
+                settingsOverlay.classList.remove('hidden');
+                gameState = 'SETTINGS';
+            });
+        });
+
+        document.getElementById('settingsCloseBtn').addEventListener('click', () => {
+            settingsOverlay.classList.add('hidden');
+            gameState = priorSettingsState; 
+
+            if (gameState === 'MENU') {
+                menuOverlay.classList.remove('hidden');
+            } else if (gameState === 'GAMEOVER') {
+                deathOverlay.classList.remove('hidden');
+            }
+        });
+
+        for(let i=0; i<config.maxNPCs; i++) {
+            const randomName = npcNames[Math.floor(Math.random() * npcNames.length)] + " [" + Math.floor(Math.random()*900+100) + "]";
+            snakes.push(new Snake(Math.random()*config.mapWidth, Math.random()*config.mapHeight, false, randomName));
+        }
+
+        animate();
+    </script>
+</body>
+</html>
