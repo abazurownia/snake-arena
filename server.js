@@ -1,15 +1,13 @@
 // server.js
 const { WebSocketServer } = require('ws');
-
-// Use Render's environment variable port, or default to 3000 for local testing
-const PORT = process.env.PORT || 3000;
-const wss = new WebSocketServer({ port: PORT });
+const wss = new WebSocketServer({ port: 3000 });
 
 let players = {};
 
 wss.on('connection', (ws) => {
     // Generate a unique identifier for the connected player
     let myId = Math.random().toString(36).substring(2, 9);
+    console.log(`👤 New player connected. Assigning network ID: ${myId}`);
     
     ws.on('message', (message) => {
         try {
@@ -28,6 +26,7 @@ wss.on('connection', (ws) => {
                     actuallyBoosting: false
                 };
                 ws.send(JSON.stringify({ type: 'init', id: myId }));
+                console.log(`🎮 Player "${data.name}" (${myId}) has joined the arena.`);
             }
             
             // Continuous position/state synchronization updates
@@ -46,10 +45,11 @@ wss.on('connection', (ws) => {
 
             // Sync mass-drops from real player deaths across all network points
             if (data.type === 'death') {
+                console.log(`💀 Player ${myId} died. Relaying death orbs across network.`);
                 wss.clients.forEach(client => {
                     if (client.readyState === 1) {
                         client.send(JSON.stringify({ 
-                            type: 'spawnDeathOrbs',
+                            type: 'spawnDeathOrbs', 
                             segments: data.segments, 
                             startRGB: data.startRGB, 
                             endRGB: data.endRGB 
@@ -63,6 +63,7 @@ wss.on('connection', (ws) => {
     });
 
     ws.on('close', () => {
+        console.log(`🔌 Player ${myId} disconnected.`);
         delete players[myId];
         wss.clients.forEach(client => {
             if (client.readyState === 1) {
@@ -72,4 +73,4 @@ wss.on('connection', (ws) => {
     });
 });
 
-console.log(`🐍 Snake Arena server successfully listening on port ${PORT}!`);
+console.log('🐍 Snake Arena LAN server successfully listening on port 3000!');
