@@ -1,11 +1,9 @@
 // server.js
-// To run this: 
-// 1. Install Node.js on your machine
-// 2. Open terminal and run: npm install ws
-// 3. Start server using: node server.js
-
 const { WebSocketServer } = require('ws');
-const wss = new WebSocketServer({ port: 3000 });
+
+// Use Render's environment variable port, or default to 3000 for local testing
+const PORT = process.env.PORT || 3000;
+const wss = new WebSocketServer({ port: PORT });
 
 let players = {};
 
@@ -51,7 +49,7 @@ wss.on('connection', (ws) => {
                 wss.clients.forEach(client => {
                     if (client.readyState === 1) {
                         client.send(JSON.stringify({ 
-                            type: 'spawnDeathOrbs', 
+                            type: 'spawnDeathOrbs',
                             segments: data.segments, 
                             startRGB: data.startRGB, 
                             endRGB: data.endRGB 
@@ -74,4 +72,4 @@ wss.on('connection', (ws) => {
     });
 });
 
-console.log('🐍 Snake Arena LAN server successfully listening on port 3000!');
+console.log(`🐍 Snake Arena server successfully listening on port ${PORT}!`);
