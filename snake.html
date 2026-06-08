@@ -945,19 +945,11 @@
 
                 if (currentGamemode === 'TRON') {
                     speed = 4.8;
-                    if (this.isPlayer || this.isNetworkRemote) {
-                        this.currentDirection = this.nextDirection;
-                        if (this.currentDirection === 'UP') targetAngle = -Math.PI / 2;
-                        if (this.currentDirection === 'DOWN') targetAngle = Math.PI / 2;
-                        if (this.currentDirection === 'LEFT') targetAngle = Math.PI;
-                        if (this.currentDirection === 'RIGHT') targetAngle = 0;
-                    } else {
-                        this.currentDirection = this.nextDirection;
-                        if (this.currentDirection === 'UP') targetAngle = -Math.PI / 2;
-                        if (this.currentDirection === 'DOWN') targetAngle = Math.PI / 2;
-                        if (this.currentDirection === 'LEFT') targetAngle = Math.PI;
-                        if (this.currentDirection === 'RIGHT') targetAngle = 0;
-                    }
+                    this.currentDirection = this.nextDirection;
+                    if (this.currentDirection === 'UP') targetAngle = -Math.PI / 2;
+                    if (this.currentDirection === 'DOWN') targetAngle = Math.PI / 2;
+                    if (this.currentDirection === 'LEFT') targetAngle = Math.PI;
+                    if (this.currentDirection === 'RIGHT') targetAngle = 0;
                 } else {
                     if (this.isPlayer) {
                         let worldMouseX = mouse.x + camera.x;
@@ -1088,7 +1080,7 @@
                 ctx.restore();
 
                 ctx.save();
-                ctx.fillStyle = config.ultraOptimization && !this.isPlayer ? '#ffffff' : '#ffffff';
+                ctx.fillStyle = '#ffffff';
                 ctx.font = `bold 12px 'Segoe UI', Arial`;
                 ctx.textAlign = 'center';
                 ctx.shadowBlur = 4;
@@ -1154,13 +1146,12 @@
                     if (s.isProtected()) continue;
 
                     let startIdx = 0;
-                    if (s.isNetworkRemote) startIdx = 0; 
 
                     for (let i = startIdx; i < s.segments.length; i++) {
                         if (s === player && i < 4) continue; 
                         let seg = s.segments[i];
-                        let rThresh = pHead.baseRadius + s.baseRadius;
-                        if (currentGamemode === 'TRON') rThresh = (pHead.baseRadius + s.baseRadius) * 0.75;
+                        let rThresh = player.baseRadius + s.baseRadius;
+                        if (currentGamemode === 'TRON') rThresh = (player.baseRadius + s.baseRadius) * 0.75;
 
                         if (Math.hypot(pHead.x - seg.x, pHead.y - seg.y) < rThresh * 0.85) {
                             handlePlayerDeath();
@@ -1186,7 +1177,7 @@
                         let rThresh = s.baseRadius + other.baseRadius;
                         if (currentGamemode === 'TRON') rThresh = (s.baseRadius + other.baseRadius) * 0.75;
 
-                        if (Math.hypot(sHead.x - seg.x, seg.y - seg.y) < rThresh * 0.85) {
+                        if (Math.hypot(sHead.x - seg.x, sHead.y - seg.y) < rThresh * 0.85) {
                             died = true;
                             break;
                         }
@@ -1289,9 +1280,9 @@
         let networkPlayers = {};
 
         function gameLoop() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            if (config.motionBlur && gameState === 'PLAYING') {
+            if (!config.motionBlur || gameState !== 'PLAYING') {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            } else {
                 ctx.fillStyle = 'rgba(4, 4, 6, 0.28)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
@@ -1399,10 +1390,8 @@
         });
 
         document.getElementById('lanBtn').addEventListener('click', () => {
-            // 1. Automatically switch between secure wss:// (Render) and standard ws:// (Local)
             const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
             
-            // 2. Fall back to your input field or localhost if running locally on your PC
             let host = window.location.host;
             if (!host || host.startsWith('127.0.0.1') || host.startsWith('localhost') || window.location.protocol === 'file:') {
                 host = lanIpInput.value || 'localhost:3000';
